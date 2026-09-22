@@ -1,0 +1,28 @@
+# Secrets. ops/.env holds the JWT signing key; only the example belongs in the repository.
+.env
+.env.local
+.env.*.local
+ops/.env
+
+# Java / Gradle
+backend/build/
+backend/.gradle/
+backend/bin/
+*.class
+
+# jqwik records failing property samples here so it can replay them. Useful locally,
+# meaningless to anyone else.
+backend/.jqwik-database
+
+# Node
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+npm-debug.log*
+
+# Editors and OS
+.idea/
+*.iml
+.vscode/
+.DS_Store
+Thumbs.db

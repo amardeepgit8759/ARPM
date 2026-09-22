@@ -1,0 +1,18 @@
+# Both images build from the repository root, so this keeps build contexts small and stops a
+# local ops/.env from ever being copied into an image layer.
+.git
+.github
+ops/.env
+docs
+
+# content/ is NOT ignored: the backend image copies it in for taxonomy seeding.
+
+backend/build
+backend/.gradle
+frontend/node_modules
+frontend/dist
+
+**/.env
+**/.env.local
+.idea
+.vscode

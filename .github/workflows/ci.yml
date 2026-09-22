@@ -1,0 +1,119 @@
+name: CI
+
+# GitHub only reads workflows from .github/workflows, which is why this file is not in ops/
+# alongside the rest of the operational configuration.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# A new push to a branch makes the previous run's answer irrelevant.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: temurin
+          cache: gradle
+
+      - name: Compile
+        run: ./gradlew compileJava compileTestJava --no-daemon
+
+      # Split from the unit suite so a broken architecture rule is legible in the job list
+      # rather than buried among a hundred passing tests.
+      - name: Architecture rules
+        run: ./gradlew test --tests '*ArchitectureRulesTest*' --no-daemon
+
+      - name: Unit tests
+        run: ./gradlew test --no-daemon
+
+      # The runner provides a Docker daemon, so Testcontainers starts a real PostgreSQL and the
+      # migrations run exactly as they do locally. No in-memory database stands in for it.
+      - name: Integration tests
+        run: ./gradlew integrationTest --no-daemon
+
+      - name: Publish test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-test-results
+          path: backend/build/reports/tests/
+          retention-days: 7
+
+  frontend:
+    name: Frontend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Tests
+        run: npm run test
+
+      - name: Build
+        run: npm run build
+
+  compose:
+    name: Docker Compose boots
+    runs-on: ubuntu-latest
+    # The exit criterion for Phase 0 is that a clean machine can bring the stack up. That is
+    # worth asserting in CI rather than trusting, because it breaks silently and is only ever
+    # discovered by whoever joins the project next.
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate a throwaway signing secret
+        run: echo "PLACEFY_JWT_SECRET=$(openssl rand -base64 48)" > ops/.env
+
+      - name: Bring the stack up
+        run: docker compose -f ops/docker-compose.yml up --build --wait --wait-timeout 300
+
+      - name: Register a user through the API
+        run: |
+          curl --fail --silent --show-error \
+            -X POST http://localhost:8080/api/v1/auth/register \
+            -H 'Content-Type: application/json' \
+            -d '{"name":"CI Smoke","email":"ci-smoke@example.com","password":"correct-horse-battery"}' \
+            | tee /dev/stderr | grep -q '"role":"STUDENT"'
+
+      - name: Check the frontend is served
+        run: curl --fail --silent --show-error http://localhost:5173 | grep -q '<div id="root">'
+
+      - name: Show logs on failure
+        if: failure()
+        run: docker compose -f ops/docker-compose.yml logs --no-color
+
+      - name: Tear down
+        if: always()
+        run: docker compose -f ops/docker-compose.yml down -v
