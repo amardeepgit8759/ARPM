@@ -1,0 +1,99 @@
+# EXAMPLE CONTENT — REVIEW AND REPLACE BEFORE ANY REAL USE.
+# The breakdown below is plausible, not researched. Every default_effort_hours is a placeholder
+# and carries no scoring meaning in the current build. See ../SCHEMA.md.
+
+code: databases
+name: Databases
+
+description: >-
+  Relational database fundamentals. Contains the worked example of a cross-domain prerequisite:
+  index-fundamentals requires balanced-tree-concepts, which lives in the algorithms domain,
+  because B-tree indexes are not understandable without balanced trees.
+
+skills:
+  - code: relational-modelling
+    name: Relational Modelling
+    sub_skills:
+      - code: relational-model-basics
+        name: Relational Model Basics
+        default_effort_hours: 4
+        prerequisites: []
+
+      - code: entity-relationship-modelling
+        name: Entity-Relationship Modelling
+        default_effort_hours: 6
+        prerequisites:
+          - relational-model-basics
+
+      - code: normalisation
+        name: Normalisation
+        default_effort_hours: 8
+        prerequisites:
+          - entity-relationship-modelling
+
+  - code: sql-querying
+    name: SQL Querying
+    sub_skills:
+      - code: sql-select-fundamentals
+        name: SELECT Fundamentals
+        default_effort_hours: 5
+        prerequisites:
+          - relational-model-basics
+
+      - code: sql-joins
+        name: Joins
+        default_effort_hours: 6
+        prerequisites:
+          - sql-select-fundamentals
+
+      - code: sql-aggregation
+        name: Aggregation and Grouping
+        default_effort_hours: 5
+        prerequisites:
+          - sql-select-fundamentals
+
+      - code: sql-subqueries
+        name: Subqueries and CTEs
+        default_effort_hours: 6
+        prerequisites:
+          - sql-joins
+          - sql-aggregation
+
+  - code: indexing-and-performance
+    name: Indexing and Performance
+    sub_skills:
+      # Cross-domain prerequisite. This is the case the flat, global sub-skill namespace exists
+      # for: the reference resolves without knowing which domain the target lives in.
+      - code: index-fundamentals
+        name: Index Fundamentals
+        default_effort_hours: 6
+        prerequisites:
+          - sql-select-fundamentals
+          - balanced-tree-concepts
+
+      - code: query-plan-reading
+        name: Reading Query Plans
+        default_effort_hours: 8
+        prerequisites:
+          - index-fundamentals
+
+  - code: transactions
+    name: Transactions
+    sub_skills:
+      - code: acid-properties
+        name: ACID Properties
+        default_effort_hours: 4
+        prerequisites:
+          - relational-model-basics
+
+      - code: isolation-levels
+        name: Isolation Levels
+        default_effort_hours: 6
+        prerequisites:
+          - acid-properties
+
+      - code: database-locking
+        name: Locking and Deadlocks
+        default_effort_hours: 8
+        prerequisites:
+          - isolation-levels

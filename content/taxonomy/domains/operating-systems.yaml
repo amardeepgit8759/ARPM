@@ -1,0 +1,89 @@
+# EXAMPLE CONTENT — REVIEW AND REPLACE BEFORE ANY REAL USE.
+# The breakdown below is plausible, not researched. Every default_effort_hours is a placeholder
+# and carries no scoring meaning in the current build. See ../SCHEMA.md.
+
+code: operating-systems
+name: Operating Systems
+
+description: >-
+  Process, memory and concurrency fundamentals. Note that this domain has its own deadlock
+  sub-skill, distinct from the database one: os-deadlock-conditions and database-locking are
+  separate codes because they are assessed and remediated differently.
+
+skills:
+  - code: processes-and-threads
+    name: Processes and Threads
+    sub_skills:
+      - code: process-lifecycle
+        name: Process Lifecycle
+        default_effort_hours: 4
+        prerequisites: []
+
+      - code: threads-and-scheduling
+        name: Threads and Scheduling
+        default_effort_hours: 6
+        prerequisites:
+          - process-lifecycle
+
+      - code: context-switching
+        name: Context Switching
+        default_effort_hours: 4
+        prerequisites:
+          - threads-and-scheduling
+
+  - code: memory-management
+    name: Memory Management
+    sub_skills:
+      - code: virtual-memory
+        name: Virtual Memory
+        default_effort_hours: 6
+        prerequisites:
+          - process-lifecycle
+
+      - code: paging-and-segmentation
+        name: Paging and Segmentation
+        default_effort_hours: 6
+        prerequisites:
+          - virtual-memory
+
+      - code: page-replacement
+        name: Page Replacement Policies
+        default_effort_hours: 5
+        prerequisites:
+          - paging-and-segmentation
+
+  - code: concurrency
+    name: Concurrency
+    sub_skills:
+      - code: race-conditions
+        name: Race Conditions
+        default_effort_hours: 5
+        prerequisites:
+          - threads-and-scheduling
+
+      - code: mutexes-and-semaphores
+        name: Mutexes and Semaphores
+        default_effort_hours: 6
+        prerequisites:
+          - race-conditions
+
+      - code: os-deadlock-conditions
+        name: Deadlock Conditions
+        default_effort_hours: 6
+        prerequisites:
+          - mutexes-and-semaphores
+
+  - code: file-systems
+    name: File Systems
+    sub_skills:
+      - code: file-system-basics
+        name: File System Basics
+        default_effort_hours: 4
+        prerequisites:
+          - virtual-memory
+
+      - code: inodes-and-directories
+        name: Inodes and Directory Structures
+        default_effort_hours: 5
+        prerequisites:
+          - file-system-basics

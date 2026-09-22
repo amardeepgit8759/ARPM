@@ -1,0 +1,155 @@
+# EXAMPLE CONTENT — REVIEW AND REPLACE BEFORE ANY REAL USE.
+# The breakdown below is plausible, not researched. Every default_effort_hours is a placeholder
+# and carries no scoring meaning in the current build. See ../SCHEMA.md.
+
+code: data-structures-algorithms
+name: Data Structures and Algorithms
+
+description: >-
+  Core problem-solving vocabulary. The prerequisite chains here are the clearest example of why
+  the graph exists: dynamic programming is unreachable without recursion, and graph traversal
+  builds on tree traversal.
+
+skills:
+  - code: arrays-and-strings
+    name: Arrays and Strings
+    sub_skills:
+      - code: array-traversal
+        name: Array Traversal
+        default_effort_hours: 4
+        prerequisites: []
+
+      - code: two-pointer-technique
+        name: Two-Pointer Technique
+        default_effort_hours: 6
+        prerequisites:
+          - array-traversal
+
+      - code: sliding-window
+        name: Sliding Window
+        default_effort_hours: 6
+        prerequisites:
+          - two-pointer-technique
+
+      - code: string-manipulation
+        name: String Manipulation
+        default_effort_hours: 5
+        prerequisites:
+          - array-traversal
+
+  - code: hashing
+    name: Hashing
+    sub_skills:
+      - code: hash-table-basics
+        name: Hash Table Basics
+        default_effort_hours: 4
+        prerequisites: []
+
+      - code: frequency-counting
+        name: Frequency Counting
+        default_effort_hours: 4
+        prerequisites:
+          - hash-table-basics
+
+      - code: hash-collision-handling
+        name: Collision Handling
+        default_effort_hours: 5
+        prerequisites:
+          - hash-table-basics
+
+  - code: recursion
+    name: Recursion
+    sub_skills:
+      - code: recursion-fundamentals
+        name: Recursion Fundamentals
+        default_effort_hours: 6
+        prerequisites: []
+
+      - code: backtracking
+        name: Backtracking
+        default_effort_hours: 10
+        prerequisites:
+          - recursion-fundamentals
+
+  - code: trees
+    name: Trees
+    sub_skills:
+      - code: binary-tree-basics
+        name: Binary Tree Basics
+        default_effort_hours: 6
+        prerequisites:
+          - recursion-fundamentals
+
+      - code: tree-traversal
+        name: Tree Traversal
+        default_effort_hours: 6
+        prerequisites:
+          - binary-tree-basics
+
+      - code: binary-search-tree
+        name: Binary Search Trees
+        default_effort_hours: 8
+        prerequisites:
+          - tree-traversal
+
+      - code: balanced-tree-concepts
+        name: Balanced Tree Concepts
+        default_effort_hours: 8
+        prerequisites:
+          - binary-search-tree
+
+  - code: graphs
+    name: Graphs
+    sub_skills:
+      - code: graph-representation
+        name: Graph Representation
+        default_effort_hours: 4
+        prerequisites: []
+
+      # Two prerequisites from different skills: traversal needs both the graph model and the
+      # recursive traversal habits built on trees.
+      - code: graph-traversal
+        name: Graph Traversal (BFS and DFS)
+        default_effort_hours: 8
+        prerequisites:
+          - graph-representation
+          - tree-traversal
+
+      - code: shortest-path-algorithms
+        name: Shortest Path Algorithms
+        default_effort_hours: 10
+        prerequisites:
+          - graph-traversal
+
+      - code: topological-sorting
+        name: Topological Sorting
+        default_effort_hours: 6
+        prerequisites:
+          - graph-traversal
+
+  - code: dynamic-programming
+    name: Dynamic Programming
+    sub_skills:
+      - code: memoisation
+        name: Memoisation
+        default_effort_hours: 8
+        prerequisites:
+          - recursion-fundamentals
+
+      - code: tabulation
+        name: Tabulation
+        default_effort_hours: 8
+        prerequisites:
+          - memoisation
+
+      - code: dp-on-subsequences
+        name: Dynamic Programming on Subsequences
+        default_effort_hours: 12
+        prerequisites:
+          - tabulation
+
+      - code: dp-on-grids
+        name: Dynamic Programming on Grids
+        default_effort_hours: 10
+        prerequisites:
+          - tabulation

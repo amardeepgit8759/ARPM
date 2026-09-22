@@ -1,0 +1,67 @@
+# ---------------------------------------------------------------------------------------------
+# TEMPLATE — copy, do not edit in place.
+#
+# Files starting with an underscore are skipped by the loader, so this one is never imported and
+# never has to be valid. That is why the REPLACE_ME values below do not break the build.
+#
+#   1. cp _TEMPLATE.yaml <your-domain-code>.yaml
+#   2. Replace every REPLACE_ME. Delete the guidance comments.
+#   3. Add <your-domain-code> to the `domains` list in ../taxonomy.yaml
+#   4. Bump taxonomy_version in ../taxonomy.yaml
+#   5. From backend/: ./gradlew test
+#
+# Full rules: ../SCHEMA.md
+# ---------------------------------------------------------------------------------------------
+
+# Lower-case kebab-case. MUST match this file's name.
+code: REPLACE_ME
+
+# 2-160 characters. Shown to students; reword freely later, unlike the code.
+name: REPLACE_ME
+
+# Optional. Delete the line if you have nothing to say.
+description: >-
+  REPLACE_ME
+
+skills:
+  # At least one skill. Skill codes are unique across the WHOLE taxonomy, not just this file —
+  # prefer 'sql-joins' over 'joins'.
+  - code: REPLACE_ME
+    name: REPLACE_ME
+
+    sub_skills:
+      # At least one sub-skill. Sub-skill codes are likewise globally unique: this is the unit
+      # that assessment items are tagged with and that company requirements set thresholds on.
+      - code: REPLACE_ME
+        name: REPLACE_ME
+
+        # Whole hours, 1-10000. An estimate of study time.
+        #
+        # This value currently has NO scoring meaning. Nothing reads it to compute a score, a
+        # cost or a gap priority. What it will mean is a decision for docs/scoring-spec.md,
+        # which is not yet written — so estimate honestly, but do not agonise.
+        default_effort_hours: 4
+
+        # Sub-skill codes that must be understood first. May reference sub-skills in OTHER
+        # domain files; the namespace is flat and global.
+        #
+        # Must form a directed acyclic graph. If a requires b and b requires a, the validator
+        # rejects the taxonomy and prints the cycle path.
+        #
+        # Use [] or delete the key entirely when there are none.
+        prerequisites: []
+
+      - code: REPLACE_ME
+        name: REPLACE_ME
+        default_effort_hours: 6
+        prerequisites:
+          # Typically the sub-skill above, forming a chain within the skill.
+          - REPLACE_ME
+
+  # - code: REPLACE_ME
+  #   name: REPLACE_ME
+  #   sub_skills:
+  #     - code: REPLACE_ME
+  #       name: REPLACE_ME
+  #       default_effort_hours: 8
+  #       prerequisites: []

@@ -1,0 +1,21 @@
+# ---------------------------------------------------------------------------------------------
+# EXAMPLE CONTENT — REVIEW AND REPLACE BEFORE ANY REAL USE
+#
+# The three domains listed below are a worked example of the format, not a researched or
+# reviewed curriculum. The skill breakdown is plausible rather than authoritative, and every
+# default_effort_hours value is a placeholder.
+#
+# Replace this content with the real taxonomy, then bump taxonomy_version.
+# See SCHEMA.md for the rules and for how to add a domain.
+# ---------------------------------------------------------------------------------------------
+
+taxonomy_version: "2026.1-example"
+
+description: >-
+  Worked example of the Placefy taxonomy format. Three domains, showing nested skills and
+  sub-skills, within-domain prerequisite chains, and one cross-domain prerequisite.
+
+domains:
+  - data-structures-algorithms
+  - databases
+  - operating-systems
