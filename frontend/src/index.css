@@ -1,0 +1,60 @@
+@import 'tailwindcss';
+
+/*
+ * One neutral palette and one functional accent.
+ *
+ * Placefy shows people a number that says how ready they are for a job they want. That number
+ * has to read as a measurement, not as a mood. So: no gradients, no decorative colour, no
+ * shadow-heavy cards. Colour carries meaning only — the accent marks the one action on a
+ * screen, and danger marks a failure. Everything else is neutral, separated by 1px borders.
+ */
+@theme {
+  --color-canvas: #fafaf9;
+  --color-surface: #ffffff;
+  --color-border: #e7e5e4;
+  --color-border-strong: #d6d3d1;
+
+  --color-ink: #1c1917;
+  --color-ink-muted: #57534e;
+  --color-ink-subtle: #78716c;
+
+  --color-accent: #1d4ed8;
+  --color-accent-strong: #1e3a8a;
+  --color-accent-subtle: #eff4ff;
+
+  --color-danger: #b42318;
+  --color-danger-subtle: #fef3f2;
+  --color-danger-border: #fecdca;
+
+  --font-sans:
+    ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
+    sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', 'Cascadia Mono', Menlo, Consolas, monospace;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-canvas text-ink font-sans antialiased;
+  }
+
+  /*
+   * Tabular figures everywhere, not only in tables. Scores, gaps and dates will sit in
+   * vertical lists and change between renders; proportional digits make them jitter, which
+   * reads as instability in numbers whose whole promise is that they are stable.
+   */
+  body,
+  input,
+  button,
+  table {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum' 1;
+  }
+
+  :focus-visible {
+    @apply outline-accent outline-2 outline-offset-2;
+  }
+}
