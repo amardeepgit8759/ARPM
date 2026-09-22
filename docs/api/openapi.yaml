@@ -1,0 +1,322 @@
+openapi: 3.1.0
+
+info:
+  title: Placefy API
+  version: 0.1.0
+  description: |
+    Placement-readiness platform API.
+
+    Phase 0 covers authentication only. Every endpoint added later must appear here in the
+    same commit that adds it, and must be covered by a contract test.
+
+    Two conventions hold across the whole API:
+
+    - Errors are RFC 7807 `application/problem+json`. The `type` field is a stable URN a
+      client may branch on; `title` and `detail` are for humans and may be reworded.
+    - Any number this API ever returns traces to a persisted, versioned run. Nothing is
+      computed while answering a read.
+
+servers:
+  - url: http://localhost:8080
+    description: Local development
+
+tags:
+  - name: Authentication
+  - name: Current user
+
+paths:
+  /api/v1/auth/register:
+    post:
+      tags: [Authentication]
+      summary: Create a student account and open a session
+      operationId: register
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: Account created. The session is open.
+          headers:
+            Set-Cookie:
+              description: |
+                The refresh token, as `placefy_refresh`. Always `HttpOnly`, `SameSite=Strict`
+                and scoped to `Path=/api/v1/auth/refresh`. `Secure` is set everywhere except
+                the local development profile, where the origin is plain-HTTP localhost.
+              schema:
+                type: string
+              example: placefy_refresh=<opaque>; Path=/api/v1/auth/refresh; Max-Age=2592000; HttpOnly; Secure; SameSite=Strict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionResponse'
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '409':
+          description: The email address already has an account.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+              example:
+                type: urn:placefy:problem:email-already-registered
+                title: Email already registered
+                status: 409
+                detail: An account with that email already exists.
+                instance: /api/v1/auth/register
+
+  /api/v1/auth/login:
+    post:
+      tags: [Authentication]
+      summary: Open a session with an existing account
+      operationId: login
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Session opened.
+          headers:
+            Set-Cookie:
+              description: The refresh token, with the same attributes as on register.
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionResponse'
+        '401':
+          description: |
+            The credentials were not accepted. This one response covers an unknown address, a
+            wrong password and a malformed address alike, and the server spends the same hash
+            work on each, so neither the body nor the timing reveals whether an account exists.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+              example:
+                type: urn:placefy:problem:invalid-credentials
+                title: Invalid credentials
+                status: 401
+                detail: Email or password is incorrect.
+                instance: /api/v1/auth/login
+
+  /api/v1/auth/refresh:
+    post:
+      tags: [Authentication]
+      summary: Exchange the refresh cookie for a new session
+      operationId: refresh
+      security: []
+      description: |
+        Takes no request body: the credential is the `placefy_refresh` cookie, which no script
+        on the page can read.
+
+        Each call rotates the token. Presenting a token that has already been rotated is
+        treated as theft — the server cannot distinguish a replaying client from a thief — and
+        revokes every token in that rotation chain, ending the session on all devices that
+        share it. Other sessions belonging to the same user are unaffected.
+      responses:
+        '200':
+          description: Session refreshed and the cookie rotated.
+          headers:
+            Set-Cookie:
+              description: A new refresh token; the presented one is now dead.
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionResponse'
+        '401':
+          description: |
+            The cookie was missing, unknown, expired, or already used. The response also
+            expires the cookie in the browser so the client stops retrying a doomed refresh.
+          headers:
+            Set-Cookie:
+              description: The same cookie with `Max-Age=0`.
+              schema:
+                type: string
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+              example:
+                type: urn:placefy:problem:invalid-refresh-token
+                title: Session expired
+                status: 401
+                detail: Refresh token is missing, expired or already used.
+                instance: /api/v1/auth/refresh
+
+  /api/v1/me:
+    get:
+      tags: [Current user]
+      summary: Read the authenticated user's profile
+      operationId: getCurrentUser
+      description: |
+        Resolves the user from the access token's subject. There is deliberately no endpoint
+        that accepts a user identifier, so one cannot be substituted for another user's.
+      responses:
+        '200':
+          description: The authenticated user.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        A 15-minute HS256 access token from register, login or refresh. Claims are identity
+        only — subject, email, role. No computed value is ever carried in a token.
+
+  responses:
+    ValidationFailed:
+      description: An input was rejected by the domain.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+          example:
+            type: urn:placefy:problem:validation-failed
+            title: Validation failed
+            status: 400
+            detail: Password must be at least 12 characters.
+            instance: /api/v1/auth/register
+            field: password
+
+    Unauthenticated:
+      description: No valid access token was presented.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+          example:
+            type: urn:placefy:problem:unauthenticated
+            title: Unauthenticated
+            status: 401
+            detail: A valid access token is required for this resource.
+            instance: /api/v1/me
+
+  schemas:
+    RegisterRequest:
+      type: object
+      required: [name, email, password]
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 120
+          description: Trimmed, with internal whitespace collapsed.
+          example: Ada Lovelace
+        email:
+          type: string
+          format: email
+          maxLength: 254
+          description: Normalised to lower case, so addresses differing only in case are one account.
+          example: ada@example.com
+        password:
+          type: string
+          minLength: 12
+          description: |
+            At most 72 UTF-8 bytes. BCrypt ignores input past 72 bytes, so a longer password is
+            rejected rather than silently truncated to something weaker than it looks.
+          example: correct-horse-battery
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          example: ada@example.com
+        password:
+          type: string
+          description: Not length-checked here, so a password set under an older policy still works.
+
+    SessionResponse:
+      type: object
+      required: [accessToken, accessTokenExpiresAt, user]
+      description: |
+        The refresh token is deliberately absent. It leaves the server only in the httpOnly
+        cookie, so no script on the page can read it.
+      properties:
+        accessToken:
+          type: string
+          description: HS256 JWT, valid 15 minutes.
+        accessTokenExpiresAt:
+          type: string
+          format: date-time
+          example: '2026-01-15T10:15:00Z'
+        user:
+          $ref: '#/components/schemas/User'
+
+    User:
+      type: object
+      required: [id, name, email, role, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          example: Ada Lovelace
+        email:
+          type: string
+          example: ada@example.com
+        role:
+          type: string
+          enum: [STUDENT]
+        createdAt:
+          type: string
+          format: date-time
+      example:
+        id: 0f2a6d5e-1c3b-4f8a-9d2e-7b5c1a4e8f30
+        name: Ada Lovelace
+        email: ada@example.com
+        role: STUDENT
+        createdAt: '2026-01-15T10:00:00Z'
+
+    Problem:
+      type: object
+      description: RFC 7807 problem detail.
+      required: [type, title, status]
+      properties:
+        type:
+          type: string
+          format: uri
+          description: A stable URN identifying the failure. Safe to branch on.
+          enum:
+            - urn:placefy:problem:validation-failed
+            - urn:placefy:problem:malformed-request
+            - urn:placefy:problem:email-already-registered
+            - urn:placefy:problem:invalid-credentials
+            - urn:placefy:problem:invalid-refresh-token
+            - urn:placefy:problem:unauthenticated
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+        instance:
+          type: string
+          format: uri-reference
+        field:
+          type: string
+          description: Present only on validation-failed; names the input to highlight.
+
+security:
+  - bearerAuth: []
