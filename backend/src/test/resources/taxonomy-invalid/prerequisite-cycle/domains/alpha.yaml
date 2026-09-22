@@ -1,0 +1,17 @@
+# BROKEN ON PURPOSE: alpha-skill <-> beta-skill. No study order can satisfy either.
+code: alpha
+name: Alpha Domain
+skills:
+  - code: alpha-skills
+    name: Alpha Skills
+    sub_skills:
+      - code: alpha-skill
+        name: Alpha Skill
+        default_effort_hours: 4
+        prerequisites:
+          - beta-skill
+      - code: beta-skill
+        name: Beta Skill
+        default_effort_hours: 4
+        prerequisites:
+          - alpha-skill

@@ -1,0 +1,12 @@
+# BROKEN ON PURPOSE: a finished domain that nobody added to the manifest. Without a check it
+# would sit here forever, never published, and nobody would notice.
+code: orphan
+name: Orphan Domain
+skills:
+  - code: orphan-skills
+    name: Orphan Skills
+    sub_skills:
+      - code: orphan-skill
+        name: Orphan Skill
+        default_effort_hours: 4
+        prerequisites: []

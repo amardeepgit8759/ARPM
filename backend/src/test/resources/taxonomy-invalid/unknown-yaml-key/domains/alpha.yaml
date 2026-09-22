@@ -1,0 +1,11 @@
+# BROKEN ON PURPOSE: 'prerequisits' is a typo. Silently ignoring it would drop a real edge.
+code: alpha
+name: Alpha Domain
+skills:
+  - code: alpha-skills
+    name: Alpha Skills
+    sub_skills:
+      - code: alpha-skill
+        name: Alpha Skill
+        default_effort_hours: 4
+        prerequisits: []

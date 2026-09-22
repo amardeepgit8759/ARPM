@@ -1,0 +1,37 @@
+# Test-only configuration.
+#
+# The JWT secret below is a fixture, not a credential: it signs tokens that exist for the
+# lifetime of a test JVM and is not the value any deployment uses. The real secret comes from
+# PLACEFY_JWT_SECRET and has no committed default anywhere.
+placefy:
+  security:
+    jwt:
+      secret: "placefy-test-signing-secret-0123456789-abcdefghijklmnop"
+      issuer: placefy
+      access-token-ttl: PT15M
+    refresh-token:
+      ttl: P30D
+    cors:
+      allowed-origins: http://localhost:5173
+  web:
+    refresh-cookie:
+      name: placefy_refresh
+      # Kept true so the contract test asserts the attribute the browser will actually receive.
+      secure: true
+      path: /api/v1/auth/refresh
+      same-site: Strict
+
+spring:
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+
+logging:
+  level:
+    org.testcontainers: WARN
+    com.github.dockerjava: WARN

@@ -1,0 +1,18 @@
+# BROKEN ON PURPOSE: the skill code 'alpha-skills' appears twice.
+code: alpha
+name: Alpha Domain
+skills:
+  - code: alpha-skills
+    name: Alpha Skills
+    sub_skills:
+      - code: alpha-skill
+        name: Alpha Skill
+        default_effort_hours: 4
+        prerequisites: []
+  - code: alpha-skills
+    name: Alpha Skills Duplicated
+    sub_skills:
+      - code: beta-skill
+        name: Beta Skill
+        default_effort_hours: 4
+        prerequisites: []

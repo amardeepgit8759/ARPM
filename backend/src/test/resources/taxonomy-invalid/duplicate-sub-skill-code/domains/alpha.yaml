@@ -1,0 +1,18 @@
+# BROKEN ON PURPOSE: 'alpha-skill' is declared in two different skills.
+code: alpha
+name: Alpha Domain
+skills:
+  - code: alpha-skills
+    name: Alpha Skills
+    sub_skills:
+      - code: alpha-skill
+        name: Alpha Skill
+        default_effort_hours: 4
+        prerequisites: []
+  - code: other-skills
+    name: Other Skills
+    sub_skills:
+      - code: alpha-skill
+        name: Alpha Skill Again
+        default_effort_hours: 4
+        prerequisites: []

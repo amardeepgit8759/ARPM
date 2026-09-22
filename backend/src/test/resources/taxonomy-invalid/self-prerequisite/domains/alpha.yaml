@@ -1,0 +1,12 @@
+# BROKEN ON PURPOSE: a sub-skill listing itself as its own prerequisite.
+code: alpha
+name: Alpha Domain
+skills:
+  - code: alpha-skills
+    name: Alpha Skills
+    sub_skills:
+      - code: alpha-skill
+        name: Alpha Skill
+        default_effort_hours: 4
+        prerequisites:
+          - alpha-skill

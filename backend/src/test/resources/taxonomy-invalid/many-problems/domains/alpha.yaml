@@ -1,0 +1,21 @@
+# BROKEN ON PURPOSE, three times over, all at the parsing stage: an invalid code, a missing
+# effort value, and a prerequisite whose code is not a valid slug. The loader must report all
+# three in one pass rather than stopping at the first.
+code: alpha
+name: Alpha Domain
+skills:
+  - code: alpha-skills
+    name: Alpha Skills
+    sub_skills:
+      - code: Bad_Code
+        name: Bad Code
+        default_effort_hours: 4
+        prerequisites: []
+      - code: no-effort
+        name: No Effort Declared
+        prerequisites: []
+      - code: bad-reference
+        name: Bad Reference
+        default_effort_hours: 4
+        prerequisites:
+          - Not A Slug

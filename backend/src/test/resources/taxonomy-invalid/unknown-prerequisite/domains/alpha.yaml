@@ -1,0 +1,12 @@
+# BROKEN ON PURPOSE: 'does-not-exist' is not declared anywhere.
+code: alpha
+name: Alpha Domain
+skills:
+  - code: alpha-skills
+    name: Alpha Skills
+    sub_skills:
+      - code: alpha-skill
+        name: Alpha Skill
+        default_effort_hours: 4
+        prerequisites:
+          - does-not-exist

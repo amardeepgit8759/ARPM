@@ -1,0 +1,25 @@
+# BROKEN ON PURPOSE at the structural stage: every field parses, but 'alpha-skill' is declared
+# twice and 'ghost-skill' is referenced without being declared. Both are only visible once the
+# whole tree exists, so the aggregate must report them together.
+code: alpha
+name: Alpha Domain
+skills:
+  - code: alpha-skills
+    name: Alpha Skills
+    sub_skills:
+      - code: alpha-skill
+        name: Alpha Skill
+        default_effort_hours: 4
+        prerequisites: []
+      - code: needs-a-ghost
+        name: Needs A Ghost
+        default_effort_hours: 4
+        prerequisites:
+          - ghost-skill
+  - code: other-skills
+    name: Other Skills
+    sub_skills:
+      - code: alpha-skill
+        name: Alpha Skill Declared Again
+        default_effort_hours: 4
+        prerequisites: []

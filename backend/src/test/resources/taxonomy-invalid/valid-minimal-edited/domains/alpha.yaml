@@ -1,0 +1,15 @@
+code: alpha
+name: Alpha Domain
+skills:
+  - code: alpha-skills
+    name: Alpha Skills
+    sub_skills:
+      - code: alpha-skill
+        name: Alpha Skill
+        default_effort_hours: 4
+        prerequisites: []
+      - code: beta-skill
+        name: Beta Skill
+        default_effort_hours: 7
+        prerequisites:
+          - alpha-skill

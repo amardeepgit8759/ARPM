@@ -1,0 +1,7 @@
+# BROKEN ON PURPOSE: a skill with no sub_skills has nothing to assess or measure.
+code: alpha
+name: Alpha Domain
+skills:
+  - code: alpha-skills
+    name: Alpha Skills
+    sub_skills: []
