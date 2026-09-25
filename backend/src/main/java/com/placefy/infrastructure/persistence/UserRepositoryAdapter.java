@@ -3,6 +3,7 @@ package com.placefy.infrastructure.persistence;
 import com.placefy.application.error.EmailAlreadyRegisteredException;
 import com.placefy.application.port.out.UserRepository;
 import com.placefy.domain.user.Email;
+import com.placefy.domain.user.Role;
 import com.placefy.domain.user.User;
 import com.placefy.domain.user.UserId;
 import java.util.Optional;
@@ -61,6 +62,26 @@ class UserRepositoryAdapter implements UserRepository {
      * Matches on the constraint name so that a future unique index on this table does not get
      * silently reported to the user as "email already registered".
      */
+    @Override
+    @Transactional
+    public boolean deleteById(UserId id) {
+        if (!jpa.existsById(id.value())) {
+            return false;
+        }
+        // refresh_tokens carries ON DELETE CASCADE, so a user's sessions go with them. Any future
+        // user-owned table must do the same, or deletion will start failing on a foreign key
+        // rather than silently leaving orphaned rows behind.
+        jpa.deleteById(id.value());
+        jpa.flush();
+        return true;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public long countByRole(Role role) {
+        return jpa.countByRole(role.name());
+    }
+
     private boolean violatesEmailUniqueIndex(DataIntegrityViolationException e) {
         Throwable cause = e.getCause();
         while (cause != null) {

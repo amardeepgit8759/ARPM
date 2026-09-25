@@ -18,7 +18,8 @@ placefy:
       name: placefy_refresh
       # Kept true so the contract test asserts the attribute the browser will actually receive.
       secure: true
-      path: /api/v1/auth/refresh
+      # Must match src/main/resources/application.yml: refresh and logout both read the cookie.
+      path: /api/v1/auth
       same-site: Strict
 
 spring:

@@ -1,0 +1,26 @@
+questions:
+  - code: fixture-one
+    type: SINGLE_CHOICE
+    difficulty: 3
+    stem: What is two plus two in this fixture?
+    options:
+      - id: a
+        text: Four
+      - id: b
+        text: Five
+    correct_options:
+      - a
+    explanation: Two plus two is four. Fixture text, not teaching material.
+    tags:
+      - sub_skill: adding-integers
+        weight: 1.0
+    originality:
+      attested_by: Author One
+      attested_on: 2026-09-01
+      original_work: true
+      source_note: Written from scratch for this fixture.
+    review:
+      reviewed_by: Reviewer Two
+      reviewed_on: 2026-09-02
+      outcome: APPROVED
+      comment: Checked the key.

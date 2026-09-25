@@ -123,6 +123,46 @@ class ArchitectureRulesTest {
             .because("constructor injection makes an unsatisfiable dependency a compile-time problem "
                     + "and lets every class be built in a test without reflection");
 
+    // ---------------------------------------------------------------- no AI/ML (ADR-006)
+
+    /**
+     * The current version of APRM uses no AI, ML or LLM anywhere — not in scoring, and not in
+     * explanations either, which come from deterministic templates. This covers the whole
+     * codebase, not only the decision layer, because an explanation produced by a model is still a
+     * claim the product makes to a student. Extend the list when a new client library appears.
+     */
+    @ArchTest
+    static final ArchRule noAiOrMachineLearningLibraries = noClasses()
+            .should()
+            .dependOnClassesThat()
+            .resideInAnyPackage(
+                    // LLM provider SDKs and orchestration frameworks
+                    "com.anthropic..",
+                    "com.openai..",
+                    "com.theokanning.openai..",
+                    "com.azure.ai..",
+                    "com.google.cloud.vertexai..",
+                    "com.google.genai..",
+                    "software.amazon.awssdk.services.bedrock..",
+                    "software.amazon.awssdk.services.bedrockruntime..",
+                    "dev.langchain4j..",
+                    "org.springframework.ai..",
+                    "io.github.ollama4j..",
+                    // Machine-learning and inference libraries
+                    "ai.djl..",
+                    "org.tensorflow..",
+                    "org.deeplearning4j..",
+                    "org.nd4j..",
+                    "ai.onnxruntime..",
+                    "smile..",
+                    "weka..",
+                    "org.apache.spark.ml..",
+                    "org.apache.spark.mllib..",
+                    "hex..",
+                    "water..")
+            .because("ADR-006: every score, gap, priority, roadmap and explanation is produced by "
+                    + "deterministic rules; AI/ML is a documented future enhancement, not a dependency");
+
     // ---------------------------------------------------------------- determinism
 
     private static final DescribedPredicate<JavaMethodCall> AMBIENT_NONDETERMINISM = ambientNondeterminism();

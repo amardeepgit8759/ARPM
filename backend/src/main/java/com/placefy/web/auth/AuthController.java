@@ -3,6 +3,7 @@ package com.placefy.web.auth;
 import com.placefy.application.error.InvalidRefreshTokenException;
 import com.placefy.application.port.in.AuthenticatedSession;
 import com.placefy.application.port.in.Login;
+import com.placefy.application.port.in.Logout;
 import com.placefy.application.port.in.RefreshSession;
 import com.placefy.application.port.in.RegisterUser;
 import com.placefy.web.auth.AuthRequests.LoginRequest;
@@ -28,12 +29,19 @@ class AuthController {
     private final RegisterUser registerUser;
     private final Login login;
     private final RefreshSession refreshSession;
+    private final Logout logout;
     private final RefreshCookies cookies;
 
-    AuthController(RegisterUser registerUser, Login login, RefreshSession refreshSession, RefreshCookies cookies) {
+    AuthController(
+            RegisterUser registerUser,
+            Login login,
+            RefreshSession refreshSession,
+            Logout logout,
+            RefreshCookies cookies) {
         this.registerUser = registerUser;
         this.login = login;
         this.refreshSession = refreshSession;
+        this.logout = logout;
         this.cookies = cookies;
     }
 
@@ -59,6 +67,19 @@ class AuthController {
         String presented = cookies.readFrom(request).orElseThrow(InvalidRefreshTokenException::new);
         AuthenticatedSession session = refreshSession.handle(new RefreshSession.RefreshSessionCommand(presented));
         return respondWith(session, HttpStatus.OK);
+    }
+
+    /**
+     * Always 204, and always clears the cookie. Whether the server recognised the token is not
+     * something a sign-out response should reveal, and the browser should end up with no cookie
+     * either way.
+     */
+    @PostMapping("/logout")
+    ResponseEntity<Void> logout(HttpServletRequest request) {
+        logout.handle(new Logout.LogoutCommand(cookies.readFrom(request).orElse(null)));
+        return ResponseEntity.noContent()
+                .header(HttpHeaders.SET_COOKIE, cookies.clear().toString())
+                .build();
     }
 
     private ResponseEntity<SessionResponse> respondWith(AuthenticatedSession session, HttpStatus status) {

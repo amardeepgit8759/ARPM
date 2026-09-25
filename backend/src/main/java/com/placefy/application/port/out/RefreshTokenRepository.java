@@ -18,4 +18,21 @@ public interface RefreshTokenRepository {
      * @return how many tokens this revoked, so callers can assert the blast radius in tests
      */
     int revokeFamily(RefreshTokenFamilyId familyId, Instant revokedAt);
+
+    /**
+     * Revokes every live token this user holds, across all families. Used when the password
+     * changes, which must end every session the old password opened.
+     *
+     * @return how many tokens this revoked
+     */
+    int revokeAllForUser(com.placefy.domain.user.UserId userId, Instant revokedAt);
+
+    /**
+     * Every session this user has, newest first, for a data export.
+     *
+     * <p>Returns the tokens themselves; it is the export projection's job to drop the hashes.
+     * Keeping that decision in one visible place beats a repository that quietly returns
+     * different shapes to different callers.
+     */
+    java.util.List<RefreshToken> findByUser(com.placefy.domain.user.UserId userId);
 }

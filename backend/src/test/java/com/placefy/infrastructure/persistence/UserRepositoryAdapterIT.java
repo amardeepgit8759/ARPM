@@ -133,6 +133,35 @@ class UserRepositoryAdapterIT extends PostgresIntegrationTest {
                 .hasMessageContaining("users_updated_at_not_before_created_at");
     }
 
+    @Test
+    @DisplayName("saving an existing user updates the row rather than inserting a second one")
+    void savingAnEditedUserUpdatesInPlace() {
+        Instant created = Instant.parse("2026-01-15T10:00:00Z");
+        User saved = users.save(ada(created));
+
+        users.save(saved.rename(FullName.of("Ada King"), created.plusSeconds(60)));
+
+        User loaded = users.findById(saved.id()).orElseThrow();
+        assertThat(loaded.name().value()).isEqualTo("Ada King");
+        assertThat(loaded.updatedAt()).isEqualTo(created.plusSeconds(60));
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM users", Integer.class)).isEqualTo(1);
+    }
+
+    @Test
+    void countsByRole() {
+        Instant at = Instant.parse("2026-01-15T10:00:00Z");
+        users.save(ada(at));
+        users.save(User.register(
+                UserId.of(UUID.randomUUID()), FullName.of("Grace Hopper"), Email.of("grace@example.com"), HASH, at));
+        User admin = User.register(
+                UserId.of(UUID.randomUUID()), FullName.of("Site Admin"), Email.of("admin@example.com"), HASH, at);
+        users.save(User.rehydrate(
+                admin.id(), admin.name(), admin.email(), HASH, Role.ADMIN, at, at));
+
+        assertThat(users.countByRole(Role.STUDENT)).isEqualTo(2);
+        assertThat(users.countByRole(Role.ADMIN)).isEqualTo(1);
+    }
+
     private User ada(Instant at) {
         return User.register(
                 UserId.of(UUID.randomUUID()), FullName.of("Ada Lovelace"), Email.of("ada@example.com"), HASH, at);

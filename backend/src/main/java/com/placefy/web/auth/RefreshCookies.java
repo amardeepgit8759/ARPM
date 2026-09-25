@@ -10,7 +10,7 @@ import java.util.Optional;
 import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Component;
 
-/** Reads and writes the one cookie Placefy sets. */
+/** Reads and writes the one cookie APRM sets. */
 @Component
 public class RefreshCookies {
 
@@ -26,7 +26,7 @@ public class RefreshCookies {
      * Max-Age is derived from the expiry the application layer already decided, rather than from a
      * second copy of the lifetime in web configuration. One source of truth, no drift.
      */
-    ResponseCookie issue(String token, Instant expiresAt) {
+    public ResponseCookie issue(String token, Instant expiresAt) {
         Duration maxAge = Duration.between(time.now(), expiresAt);
         return base(token).maxAge(maxAge.isNegative() ? Duration.ZERO : maxAge).build();
     }

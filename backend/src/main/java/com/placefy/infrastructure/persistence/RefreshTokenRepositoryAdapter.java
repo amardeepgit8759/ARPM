@@ -32,8 +32,22 @@ class RefreshTokenRepositoryAdapter implements RefreshTokenRepository {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public java.util.List<RefreshToken> findByUser(com.placefy.domain.user.UserId userId) {
+        return jpa.findByUserIdOrderByIssuedAtDesc(userId.value()).stream()
+                .map(RefreshTokenPersistenceMapper::toDomain)
+                .toList();
+    }
+
+    @Override
     @Transactional
     public int revokeFamily(RefreshTokenFamilyId familyId, Instant revokedAt) {
         return jpa.revokeFamily(familyId.value(), revokedAt);
+    }
+
+    @Override
+    @Transactional
+    public int revokeAllForUser(com.placefy.domain.user.UserId userId, Instant revokedAt) {
+        return jpa.revokeAllForUser(userId.value(), revokedAt);
     }
 }

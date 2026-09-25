@@ -59,6 +59,25 @@ public final class User {
         return new User(id, name, email, passwordHash, role, createdAt, updatedAt);
     }
 
+    /** The same account under a new display name. Identity, email, role and creation are kept. */
+    public User rename(FullName newName, Instant changedAt) {
+        Objects.requireNonNull(newName, "newName");
+        return new User(id, newName, email, passwordHash, role, createdAt, changedAt);
+    }
+
+    /**
+     * The same account with a new password hash. Verifying the old password is the use case's
+     * job; the aggregate only guarantees the result is still a consistent user.
+     */
+    public User changePassword(PasswordHash newPasswordHash, Instant changedAt) {
+        Objects.requireNonNull(newPasswordHash, "newPasswordHash");
+        return new User(id, name, email, newPasswordHash, role, createdAt, changedAt);
+    }
+
+    public boolean isAdmin() {
+        return role == Role.ADMIN;
+    }
+
     public UserId id() {
         return id;
     }

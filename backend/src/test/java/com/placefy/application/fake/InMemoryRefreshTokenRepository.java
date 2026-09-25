@@ -37,6 +37,26 @@ public class InMemoryRefreshTokenRepository implements RefreshTokenRepository {
         return family.size();
     }
 
+    @Override
+    public int revokeAllForUser(com.placefy.domain.user.UserId userId, Instant revokedAt) {
+        List<RefreshToken> live = byId.values().stream()
+                .filter(token -> token.userId().equals(userId))
+                .filter(token -> !token.isRevoked())
+                .toList();
+        live.forEach(token -> byId.put(token.id(), token.revokeAt(revokedAt)));
+        return live.size();
+    }
+
+    @Override
+    public List<RefreshToken> findByUser(com.placefy.domain.user.UserId userId) {
+        // Newest first, matching the real adapter's ordering so an export test that passes here
+        // is not passing for a reason the database would contradict.
+        return byId.values().stream()
+                .filter(token -> token.userId().equals(userId))
+                .sorted((a, b) -> b.issuedAt().compareTo(a.issuedAt()))
+                .toList();
+    }
+
     public List<RefreshToken> all() {
         return new ArrayList<>(byId.values());
     }

@@ -1,0 +1,4 @@
+bank_version: "fixture-1"
+taxonomy_version: "test-taxonomy-1"
+banks:
+  - sample

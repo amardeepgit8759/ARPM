@@ -25,7 +25,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
 /**
- * The committed contract for /api/v1/auth and /api/v1/me, exercised end to end against a real
+ * The committed contract for /api/v1/auth and /api/v1/students/me, exercised end to end against a real
  * PostgreSQL. What this file asserts and what docs/api/openapi.yaml documents must agree.
  */
 @AutoConfigureMockMvc
@@ -78,7 +78,7 @@ class AuthContractIT extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("the cookie is httpOnly, Secure, SameSite=Strict and scoped to the refresh endpoint")
+    @DisplayName("the cookie is httpOnly, Secure, SameSite=Strict and scoped to the auth endpoints")
     void registerSetsAHardenedCookie() throws Exception {
         mvc.perform(registration("Ada Lovelace", "ada@example.com", "correct-horse-battery"))
                 .andExpect(header().string(HttpHeaders.SET_COOKIE, Matchers.containsString(COOKIE_NAME + "=")))
@@ -86,7 +86,7 @@ class AuthContractIT extends PostgresIntegrationTest {
                 .andExpect(header().string(HttpHeaders.SET_COOKIE, Matchers.containsString("Secure")))
                 .andExpect(header().string(HttpHeaders.SET_COOKIE, Matchers.containsString("SameSite=Strict")))
                 .andExpect(header().string(
-                        HttpHeaders.SET_COOKIE, Matchers.containsString("Path=/api/v1/auth/refresh")));
+                        HttpHeaders.SET_COOKIE, Matchers.containsString("Path=/api/v1/auth;")));
     }
 
     @Test
@@ -168,7 +168,7 @@ class AuthContractIT extends PostgresIntegrationTest {
 
     @Test
     void meRequiresAToken() throws Exception {
-        mvc.perform(get("/api/v1/me"))
+        mvc.perform(get("/api/v1/students/me"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(content().contentTypeCompatibleWith(PROBLEM_JSON))
                 .andExpect(jsonPath("$.type").value("urn:placefy:problem:unauthenticated"));
@@ -179,7 +179,7 @@ class AuthContractIT extends PostgresIntegrationTest {
         String token = accessTokenFrom(registerAda());
         String tampered = token.substring(0, token.length() - 2) + (token.endsWith("A") ? "B" : "A");
 
-        mvc.perform(get("/api/v1/me").header(HttpHeaders.AUTHORIZATION, "Bearer " + tampered))
+        mvc.perform(get("/api/v1/students/me").header(HttpHeaders.AUTHORIZATION, "Bearer " + tampered))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.type").value("urn:placefy:problem:unauthenticated"));
     }
@@ -188,7 +188,7 @@ class AuthContractIT extends PostgresIntegrationTest {
     void meReturnsTheAuthenticatedProfile() throws Exception {
         String token = accessTokenFrom(registerAda());
 
-        mvc.perform(get("/api/v1/me").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+        mvc.perform(get("/api/v1/students/me").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.email").value("ada@example.com"))
                 .andExpect(jsonPath("$.name").value("Ada Lovelace"))
@@ -202,11 +202,11 @@ class AuthContractIT extends PostgresIntegrationTest {
         MvcResult grace = mvc.perform(registration("Grace Hopper", "grace@example.com", "another-good-password"))
                 .andReturn();
 
-        mvc.perform(get("/api/v1/me").header(HttpHeaders.AUTHORIZATION, "Bearer " + accessTokenFrom(ada)))
+        mvc.perform(get("/api/v1/students/me").header(HttpHeaders.AUTHORIZATION, "Bearer " + accessTokenFrom(ada)))
                 .andExpect(jsonPath("$.email").value("ada@example.com"))
                 .andExpect(jsonPath("$.id").value(userIdFrom(ada)));
 
-        mvc.perform(get("/api/v1/me").header(HttpHeaders.AUTHORIZATION, "Bearer " + accessTokenFrom(grace)))
+        mvc.perform(get("/api/v1/students/me").header(HttpHeaders.AUTHORIZATION, "Bearer " + accessTokenFrom(grace)))
                 .andExpect(jsonPath("$.email").value("grace@example.com"))
                 .andExpect(jsonPath("$.id").value(userIdFrom(grace)));
 
@@ -220,7 +220,7 @@ class AuthContractIT extends PostgresIntegrationTest {
         MvcResult grace = mvc.perform(registration("Grace Hopper", "grace@example.com", "another-good-password"))
                 .andReturn();
 
-        mvc.perform(get("/api/v1/me/" + userIdFrom(grace))
+        mvc.perform(get("/api/v1/students/" + userIdFrom(grace))
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessTokenFrom(ada)))
                 .andExpect(status().isNotFound());
 
@@ -299,6 +299,62 @@ class AuthContractIT extends PostgresIntegrationTest {
                 .andExpect(jsonPath("$.user.email").value("ada@example.com"));
 
         mvc.perform(post("/api/v1/auth/refresh").cookie(grace.getResponse().getCookie(COOKIE_NAME)))
+                .andExpect(jsonPath("$.user.email").value("grace@example.com"));
+    }
+
+    // ---------------------------------------------------------------- logout
+
+    @Test
+    @DisplayName("logout answers 204, clears the cookie, and the cookie can no longer refresh")
+    void logoutRevokesTheSessionAndClearsTheCookie() throws Exception {
+        Cookie cookie = registerAda().getResponse().getCookie(COOKIE_NAME);
+
+        mvc.perform(post("/api/v1/auth/logout").cookie(cookie))
+                .andExpect(status().isNoContent())
+                .andExpect(header().string(HttpHeaders.SET_COOKIE, Matchers.containsString(COOKIE_NAME + "=")))
+                .andExpect(header().string(HttpHeaders.SET_COOKIE, Matchers.containsString("Max-Age=0")));
+
+        mvc.perform(post("/api/v1/auth/refresh").cookie(cookie))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.type").value("urn:placefy:problem:invalid-refresh-token"));
+
+        Integer live = jdbc.queryForObject(
+                "SELECT COUNT(*) FROM refresh_tokens WHERE revoked_at IS NULL", Integer.class);
+        assertThat(live).isZero();
+    }
+
+    @Test
+    @DisplayName("logout needs no access token, so an expired one cannot trap a user signed in")
+    void logoutWorksWithoutAnAccessToken() throws Exception {
+        Cookie cookie = registerAda().getResponse().getCookie(COOKIE_NAME);
+
+        mvc.perform(post("/api/v1/auth/logout").cookie(cookie)).andExpect(status().isNoContent());
+    }
+
+    @Test
+    @DisplayName("logout with no cookie, or twice, is still a quiet 204")
+    void logoutIsIdempotent() throws Exception {
+        Cookie cookie = registerAda().getResponse().getCookie(COOKIE_NAME);
+
+        mvc.perform(post("/api/v1/auth/logout")).andExpect(status().isNoContent());
+        mvc.perform(post("/api/v1/auth/logout").cookie(cookie)).andExpect(status().isNoContent());
+        mvc.perform(post("/api/v1/auth/logout").cookie(cookie)).andExpect(status().isNoContent());
+        mvc.perform(post("/api/v1/auth/logout").cookie(new Cookie(COOKIE_NAME, "never-issued")))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
+    @DisplayName("one user's logout leaves another user's session alive")
+    void logoutIsScopedToTheCookiesOwner() throws Exception {
+        MvcResult ada = registerAda();
+        MvcResult grace = mvc.perform(registration("Grace Hopper", "grace@example.com", "another-good-password"))
+                .andReturn();
+
+        mvc.perform(post("/api/v1/auth/logout").cookie(ada.getResponse().getCookie(COOKIE_NAME)))
+                .andExpect(status().isNoContent());
+
+        mvc.perform(post("/api/v1/auth/refresh").cookie(grace.getResponse().getCookie(COOKIE_NAME)))
+                .andExpect(status().isOk())
                 .andExpect(jsonPath("$.user.email").value("grace@example.com"));
     }
 

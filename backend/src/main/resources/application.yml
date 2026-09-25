@@ -62,8 +62,9 @@ placefy:
     refresh-cookie:
       name: placefy_refresh
       secure: true
-      # Scoped to the one endpoint that reads it, so it is not attached to every API call.
-      path: /api/v1/auth/refresh
+      # Scoped to the auth endpoints — refresh and logout read it — so it is not attached to
+      # every API call. Register and login receive it too, and ignore it.
+      path: /api/v1/auth
       same-site: Strict
 
 logging:

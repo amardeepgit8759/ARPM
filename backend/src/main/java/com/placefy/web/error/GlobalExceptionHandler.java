@@ -1,5 +1,6 @@
 package com.placefy.web.error;
 
+import com.placefy.application.error.AdminAccessRequiredException;
 import com.placefy.application.error.EmailAlreadyRegisteredException;
 import com.placefy.application.error.InvalidCredentialsException;
 import com.placefy.application.error.InvalidRefreshTokenException;
@@ -76,6 +77,12 @@ class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .header(HttpHeaders.SET_COOKIE, refreshCookies.clear().toString())
                 .body(problem);
+    }
+
+    /** Same type URI as ProblemDetailAccessDeniedHandler, which refuses the same thing one layer out. */
+    @ExceptionHandler(AdminAccessRequiredException.class)
+    ProblemDetail handleAdminAccessRequired(AdminAccessRequiredException e, HttpServletRequest request) {
+        return problem(HttpStatus.FORBIDDEN, "forbidden", "Forbidden", e.getMessage(), request);
     }
 
     /** A signature that verifies over an account that no longer exists is not an authentication. */

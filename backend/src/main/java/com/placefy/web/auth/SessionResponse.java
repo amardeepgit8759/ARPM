@@ -9,9 +9,9 @@ import java.time.Instant;
  * <p>The refresh token is deliberately absent: it leaves the server only in an httpOnly cookie,
  * so no script on the page can read it. Adding it here would undo that in one line.
  */
-record SessionResponse(String accessToken, Instant accessTokenExpiresAt, UserResponse user) {
+public record SessionResponse(String accessToken, Instant accessTokenExpiresAt, UserResponse user) {
 
-    static SessionResponse from(AuthenticatedSession session) {
+    public static SessionResponse from(AuthenticatedSession session) {
         return new SessionResponse(
                 session.accessToken(), session.accessTokenExpiresAt(), UserResponse.from(session.user()));
     }

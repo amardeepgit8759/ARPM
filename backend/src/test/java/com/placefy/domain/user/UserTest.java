@@ -80,6 +80,61 @@ class UserTest {
     }
 
     @Test
+    @DisplayName("renaming changes only the name and the update instant")
+    void renameKeepsEverythingElse() {
+        User original = register();
+        Instant later = AT.plusSeconds(60);
+
+        User renamed = original.rename(FullName.of("Ada King"), later);
+
+        assertThat(renamed.name().value()).isEqualTo("Ada King");
+        assertThat(renamed.id()).isEqualTo(original.id());
+        assertThat(renamed.email()).isEqualTo(original.email());
+        assertThat(renamed.passwordHash()).isEqualTo(original.passwordHash());
+        assertThat(renamed.role()).isEqualTo(original.role());
+        assertThat(renamed.createdAt()).isEqualTo(AT);
+        assertThat(renamed.updatedAt()).isEqualTo(later);
+    }
+
+    @Test
+    @DisplayName("changing the password replaces only the hash and the update instant")
+    void changePasswordKeepsEverythingElse() {
+        User original = register();
+        PasswordHash newHash =
+                PasswordHash.of("$2a$12$ZYXWVUTSRQPONMLKJIHGFEDCBAzyxwvutsrqponmlkjihgfedcba987654");
+        Instant later = AT.plusSeconds(60);
+
+        User changed = original.changePassword(newHash, later);
+
+        assertThat(changed.passwordHash()).isEqualTo(newHash);
+        assertThat(changed.name()).isEqualTo(original.name());
+        assertThat(changed.role()).isEqualTo(Role.STUDENT);
+        assertThat(changed.updatedAt()).isEqualTo(later);
+    }
+
+    @Test
+    @DisplayName("neither edit can move the update instant before creation")
+    void editsCannotPrecedeCreation() {
+        User original = register();
+        assertThatThrownBy(() -> original.rename(FullName.of("Ada King"), AT.minusSeconds(1)))
+                .isInstanceOf(DomainValidationException.class);
+        assertThatThrownBy(() -> original.changePassword(HASH, AT.minusSeconds(1)))
+                .isInstanceOf(DomainValidationException.class);
+    }
+
+    @Test
+    @DisplayName("no edit available on the aggregate can change the role")
+    void editsNeverChangeTheRole() {
+        User student = register();
+        assertThat(student.isAdmin()).isFalse();
+        assertThat(student.rename(FullName.of("Ada King"), AT).role()).isEqualTo(Role.STUDENT);
+        assertThat(student.changePassword(HASH, AT).role()).isEqualTo(Role.STUDENT);
+        assertThat(User.class.getDeclaredMethods())
+                .filteredOn(method -> !method.getName().equals("rehydrate"))
+                .allSatisfy(method -> assertThat(method.getParameterTypes()).doesNotContain(Role.class));
+    }
+
+    @Test
     void toStringDoesNotLeakTheHash() {
         assertThat(register().toString()).doesNotContain("$2a$12$");
     }

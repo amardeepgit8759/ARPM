@@ -3,6 +3,7 @@ package com.placefy.application.fake;
 import com.placefy.application.error.EmailAlreadyRegisteredException;
 import com.placefy.application.port.out.UserRepository;
 import com.placefy.domain.user.Email;
+import com.placefy.domain.user.Role;
 import com.placefy.domain.user.User;
 import com.placefy.domain.user.UserId;
 import java.util.LinkedHashMap;
@@ -43,6 +44,16 @@ public class InMemoryUserRepository implements UserRepository {
                 });
         byId.put(user.id(), user);
         return user;
+    }
+
+    @Override
+    public boolean deleteById(UserId id) {
+        return byId.remove(id) != null;
+    }
+
+    @Override
+    public long countByRole(Role role) {
+        return byId.values().stream().filter(user -> user.role() == role).count();
     }
 
     public int count() {

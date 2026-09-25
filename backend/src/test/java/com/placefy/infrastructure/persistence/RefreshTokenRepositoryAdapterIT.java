@@ -112,6 +112,35 @@ class RefreshTokenRepositoryAdapterIT extends PostgresIntegrationTest {
     }
 
     @Test
+    @DisplayName("revoking a user's sessions spans all their families and spares other users")
+    void revokesEveryFamilyOfOneUser() {
+        UserId otherUser = UserId.of(UUID.randomUUID());
+        users.save(User.register(
+                otherUser,
+                FullName.of("Grace Hopper"),
+                Email.of("grace@example.com"),
+                PasswordHash.of("$2a$12$abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ012345"),
+                NOW));
+        refreshTokens.save(token(hashOf("laptop"), RefreshTokenFamilyId.of(UUID.randomUUID())));
+        refreshTokens.save(token(hashOf("phone"), RefreshTokenFamilyId.of(UUID.randomUUID())));
+        refreshTokens.save(RefreshToken.issue(
+                RefreshTokenId.of(UUID.randomUUID()),
+                otherUser,
+                RefreshTokenFamilyId.of(UUID.randomUUID()),
+                hashOf("grace"),
+                NOW,
+                EXPIRES));
+
+        assertThat(refreshTokens.revokeAllForUser(userId, NOW.plusSeconds(10))).isEqualTo(2);
+        assertThat(refreshTokens.revokeAllForUser(userId, NOW.plusSeconds(20))).isZero();
+
+        assertThat(refreshTokens.findByHash(hashOf("laptop")).orElseThrow().revokedAt())
+                .contains(NOW.plusSeconds(10));
+        assertThat(refreshTokens.findByHash(hashOf("phone")).orElseThrow().isRevoked()).isTrue();
+        assertThat(refreshTokens.findByHash(hashOf("grace")).orElseThrow().isRevoked()).isFalse();
+    }
+
+    @Test
     @DisplayName("deleting a user takes their sessions with them")
     void tokensCascadeWithTheirUser() {
         refreshTokens.save(token(hashOf("e"), RefreshTokenFamilyId.of(UUID.randomUUID())));
