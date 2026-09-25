@@ -1,5 +1,7 @@
 import { createContext, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { authApi, type LoginInput, type RegisterInput } from '@/api/auth';
+import { api } from '@/api/client';
 import { tokenStore } from '@/api/tokenStore';
 import type { Session, User } from '@/api/schemas';
 
@@ -20,18 +22,34 @@ export interface AuthContextValue {
   state: AuthState;
   register: (input: RegisterInput) => Promise<void>;
   login: (input: LoginInput) => Promise<void>;
-  signOut: () => void;
+  /** Revokes the session on the server, then forgets it here. Never fails from the user's side. */
+  signOut: () => Promise<void>;
+  /** Adopts a session the server issued outside login, e.g. after a password change. */
+  adoptSession: (session: Session) => void;
+  /** Keeps the signed-in user in step after they edit their own profile. */
+  updateUser: (user: User) => void;
+  /** Forgets the session locally when the account no longer exists. */
+  endSession: () => void;
 }
 
 export const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }): JSX.Element {
   const [state, setState] = useState<AuthState>({ status: 'restoring' });
+  const queryClient = useQueryClient();
 
   const adopt = useCallback((session: Session): void => {
     tokenStore.set(session.accessToken);
     setState({ status: 'authenticated', user: session.user });
   }, []);
+
+  const endSession = useCallback((): void => {
+    tokenStore.clear();
+    // Cached reads belong to the user who made them; the next person on this browser must
+    // never see them, even for a frame.
+    queryClient.clear();
+    setState({ status: 'anonymous' });
+  }, [queryClient]);
 
   useEffect(() => {
     let cancelled = false;
@@ -57,6 +75,20 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
     };
   }, [adopt]);
 
+  // The client renews an expired access token by itself. If that renewal fails, the session is
+  // over, and the screen has to say so rather than keep showing a signed-in user.
+  useEffect(
+    () =>
+      api.onSessionChange((session) => {
+        if (session === null) {
+          endSession();
+        } else {
+          setState({ status: 'authenticated', user: session.user });
+        }
+      }),
+    [endSession],
+  );
+
   const register = useCallback(
     async (input: RegisterInput): Promise<void> => {
       adopt(await authApi.register(input));
@@ -71,16 +103,24 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
     [adopt],
   );
 
-  const signOut = useCallback((): void => {
-    // Clears this tab only. Server-side revocation needs a logout endpoint, which Phase 0
-    // does not have; the refresh cookie therefore stays valid until it expires or is rotated.
-    tokenStore.clear();
-    setState({ status: 'anonymous' });
+  const signOut = useCallback(async (): Promise<void> => {
+    try {
+      await authApi.logout();
+    } catch {
+      // The server could not be reached. Signing out locally still has to work; the refresh
+      // cookie then lives until it expires, which is no worse than before logout existed.
+    } finally {
+      endSession();
+    }
+  }, [endSession]);
+
+  const updateUser = useCallback((user: User): void => {
+    setState((current) => (current.status === 'authenticated' ? { status: 'authenticated', user } : current));
   }, []);
 
   const value = useMemo<AuthContextValue>(
-    () => ({ state, register, login, signOut }),
-    [state, register, login, signOut],
+    () => ({ state, register, login, signOut, adoptSession: adopt, updateUser, endSession }),
+    [state, register, login, signOut, adopt, updateUser, endSession],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

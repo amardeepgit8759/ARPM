@@ -8,11 +8,13 @@ import { z } from 'zod';
  * field. This matters more as the API starts returning scores: a silently missing number is
  * far worse than a loud one.
  */
+export const roleSchema = z.enum(['STUDENT', 'ADMIN']);
+
 export const userSchema = z.object({
   id: z.string(),
   name: z.string(),
   email: z.string(),
-  role: z.literal('STUDENT'),
+  role: roleSchema,
   createdAt: z.string(),
 });
 
@@ -22,5 +24,11 @@ export const sessionSchema = z.object({
   user: userSchema,
 });
 
+export const adminOverviewSchema = z.object({
+  studentCount: z.number().int().nonnegative(),
+});
+
+export type Role = z.infer<typeof roleSchema>;
 export type User = z.infer<typeof userSchema>;
 export type Session = z.infer<typeof sessionSchema>;
+export type AdminOverview = z.infer<typeof adminOverviewSchema>;

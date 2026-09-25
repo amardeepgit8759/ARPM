@@ -1,7 +1,7 @@
 import type { ButtonHTMLAttributes, ReactNode } from 'react';
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary';
+  variant?: 'primary' | 'secondary' | 'danger';
   loading?: boolean;
   children: ReactNode;
 }
@@ -10,6 +10,8 @@ const VARIANTS = {
   primary: 'bg-accent text-white hover:bg-accent-strong disabled:bg-border-strong',
   secondary:
     'bg-surface text-ink border border-border-strong hover:bg-canvas disabled:text-ink-subtle',
+  // Only for an irreversible action, and only once the user has asked to go ahead.
+  danger: 'bg-danger text-white hover:opacity-90 disabled:bg-border-strong',
 } as const;
 
 export function Button({

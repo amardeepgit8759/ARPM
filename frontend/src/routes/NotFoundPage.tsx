@@ -6,7 +6,7 @@ export function NotFoundPage(): JSX.Element {
       <div className="max-w-sm">
         <h1 className="text-ink text-lg font-semibold">Page not found</h1>
         <p className="text-ink-muted mt-1 text-sm">
-          That address does not match anything in Placefy.
+          That address does not match anything in APRM.
         </p>
         <Link
           to="/"

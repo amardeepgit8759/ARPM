@@ -107,6 +107,6 @@ describe('LoginPage', () => {
     await user.type(screen.getByLabelText('Password'), 'correct-horse-battery');
     await user.click(screen.getByRole('button', { name: 'Sign in' }));
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('Could not reach Placefy');
+    expect(await screen.findByRole('alert')).toHaveTextContent('Could not reach APRM');
   });
 });

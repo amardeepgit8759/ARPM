@@ -9,7 +9,7 @@ import './index.css';
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      // Placefy's reads are projections of persisted runs, so they change only when a write
+      // APRM's reads are projections of persisted runs, so they change only when a write
       // happened. Refetching because a window regained focus would be noise.
       refetchOnWindowFocus: false,
       staleTime: 30_000,

@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { z } from 'zod';
 import { ApiError, PROBLEM_TYPES, type Problem } from '@/api/problem';
+import { homePathFor } from '@/app/navigation';
 import { useAuth } from '@/auth/useAuth';
 import { Alert } from '@/components/Alert';
 import { Button } from '@/components/Button';
@@ -39,7 +40,7 @@ export function RegisterPage(): JSX.Element {
   } = useForm<RegisterValues>({ resolver: zodResolver(registerSchema) });
 
   if (state.status === 'authenticated') {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to={homePathFor(state.user.role)} replace />;
   }
 
   async function onSubmit(values: RegisterValues): Promise<void> {
@@ -117,7 +118,7 @@ function describe(error: unknown): Problem {
   }
   return {
     type: 'about:blank',
-    title: 'Could not reach Placefy',
+    title: 'Could not reach APRM',
     status: 0,
     detail: 'Check your connection and try again.',
   };

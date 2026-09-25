@@ -11,6 +11,7 @@ export const PROBLEM_TYPES = {
   invalidCredentials: 'urn:placefy:problem:invalid-credentials',
   invalidRefreshToken: 'urn:placefy:problem:invalid-refresh-token',
   unauthenticated: 'urn:placefy:problem:unauthenticated',
+  forbidden: 'urn:placefy:problem:forbidden',
 } as const;
 
 export type ProblemType = (typeof PROBLEM_TYPES)[keyof typeof PROBLEM_TYPES];
@@ -42,6 +43,14 @@ export class ApiError extends Error {
   is(type: ProblemType): boolean {
     return this.problem.type === type;
   }
+}
+
+/** One readable sentence for any failure, for screens that show an error beside a retry. */
+export function messageFor(error: unknown): string {
+  if (error instanceof ApiError) {
+    return error.problem.detail ?? error.problem.title;
+  }
+  return 'Check your connection and try again.';
 }
 
 /** Raised when the API answers with a shape the client does not recognise. */

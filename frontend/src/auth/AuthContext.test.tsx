@@ -16,7 +16,7 @@ describe('session restoration', () => {
   it('restores a signed-in user from the refresh cookie without showing the login screen', async () => {
     stubFetch({
       '/api/v1/auth/refresh': { status: 200, body: ADA_SESSION },
-      '/api/v1/me': { status: 200, body: ADA_SESSION.user },
+      '/api/v1/students/me': { status: 200, body: ADA_SESSION.user },
     });
 
     renderApp(<App />, '/dashboard');
@@ -51,7 +51,7 @@ describe('session restoration', () => {
   it('sends an authenticated visitor at the root straight to the dashboard', async () => {
     stubFetch({
       '/api/v1/auth/refresh': { status: 200, body: ADA_SESSION },
-      '/api/v1/me': { status: 200, body: ADA_SESSION.user },
+      '/api/v1/students/me': { status: 200, body: ADA_SESSION.user },
     });
 
     renderApp(<App />, '/');

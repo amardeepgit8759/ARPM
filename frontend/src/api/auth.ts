@@ -1,5 +1,5 @@
 import { api } from './client';
-import { sessionSchema, userSchema, type Session, type User } from './schemas';
+import { sessionSchema, type Session } from './schemas';
 
 export interface RegisterInput {
   name: string;
@@ -37,7 +37,8 @@ export const authApi = {
     });
   },
 
-  me(): Promise<User> {
-    return api.requestParsed(userSchema, '/api/v1/me');
+  /** Revokes the cookie's session server-side. Always 204, even for an unknown cookie. */
+  async logout(): Promise<void> {
+    await api.request('/api/v1/auth/logout', { method: 'POST', anonymous: true });
   },
 };

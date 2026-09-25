@@ -6,7 +6,7 @@ interface EmptyStateProps {
 /**
  * Says what is absent and why, rather than showing a zero.
  *
- * This matters more here than in most products: a zero on a Placefy screen is a claim that a
+ * This matters more here than in most products: a zero on an APRM screen is a claim that a
  * scoring run measured something and got zero. "No assessment yet" is a different statement,
  * and the two must never look alike.
  */

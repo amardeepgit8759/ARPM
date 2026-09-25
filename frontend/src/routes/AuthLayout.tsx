@@ -12,7 +12,7 @@ export function AuthLayout({ title, subtitle, children, footer }: AuthLayoutProp
     <main className="flex min-h-screen items-center justify-center px-4 py-12">
       <div className="w-full max-w-sm">
         <div className="mb-6">
-          <p className="text-ink text-base font-semibold tracking-tight">Placefy</p>
+          <p className="text-ink text-base font-semibold tracking-tight">APRM</p>
           <h1 className="text-ink mt-4 text-lg font-semibold">{title}</h1>
           <p className="text-ink-muted mt-1 text-sm">{subtitle}</p>
         </div>
