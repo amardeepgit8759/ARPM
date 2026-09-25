@@ -1,0 +1,77 @@
+# ---------------------------------------------------------------------------------------------
+# TEMPLATE — copy, do not edit in place.
+#
+# Files starting with an underscore are skipped by the loader, so this one is never loaded and
+# never has to be valid. That is why the REPLACE_ME values below do not break the build.
+#
+# Full rules and the reasoning behind each required field: ../SCHEMA.md
+# ---------------------------------------------------------------------------------------------
+
+questions:
+  # Lower-case kebab-case, unique across the WHOLE bank. This is the identity a stored response
+  # points at, so it can never be renamed or reused once a student has answered it.
+  - code: REPLACE_ME
+
+    # SINGLE_CHOICE (exactly one correct) or MULTIPLE_CHOICE (two or more).
+    type: SINGLE_CHOICE
+
+    # 1 to 5. A label, not a measurement: what difficulty does to a score is a decision for
+    # docs/scoring-spec.md, which is unwritten. Nothing weights it yet.
+    difficulty: 3
+
+    # The question itself. At least 15 characters. Duplicate detection compares stems after
+    # stripping case, punctuation and spacing, so a reworded copy will still be caught.
+    stem: >-
+      REPLACE_ME
+
+    # At least two. Ids are stable; text may be reworded and options reordered freely.
+    options:
+      - id: a
+        text: REPLACE_ME
+      - id: b
+        text: REPLACE_ME
+      - id: c
+        text: REPLACE_ME
+      - id: d
+        text: REPLACE_ME
+
+    # Must name declared option ids. Exactly one for SINGLE_CHOICE, two or more for
+    # MULTIPLE_CHOICE. Marking every option correct is rejected: it asks nothing.
+    correct_options:
+      - a
+
+    # Required, at least 20 characters. A wrong answer with no reason given teaches nothing, and
+    # this bank moves a score that a student's whole study plan is built from.
+    explanation: >-
+      REPLACE_ME
+
+    # At least one. Sub-skill codes must exist in the taxonomy version named in ../questions.yaml.
+    #
+    # Weights must be positive. They are NOT required to sum to 1 and are not rescaled — whether
+    # they should be is an open question in docs/scoring-spec.md 5.2, and answering it here would
+    # silently decide it for every score computed afterwards.
+    tags:
+      - sub_skill: REPLACE_ME
+        weight: 1.0
+
+    # Required. The named author's claim that this is their own work.
+    #
+    # This block exists because a question bank for interview preparation is the most tempting
+    # place in the product to paste in somebody's real assessment — a copyright problem and a
+    # fairness problem, and invisible once it is in the bank.
+    originality:
+      attested_by: REPLACE_ME
+      attested_on: 2026-01-01
+      # Must be true. There is no approved route into the bank for a reproduced question.
+      original_work: true
+      source_note: >-
+        REPLACE_ME — say where this came from, in at least 10 characters.
+
+    # Required. A second person confirming the question is correct and fairly worded.
+    # The reviewer must NOT be the author: self-review is not review.
+    review:
+      reviewed_by: REPLACE_ME
+      reviewed_on: 2026-01-01
+      # Must be APPROVED. CHANGES_REQUESTED and REJECTED keep the question out of the bank.
+      outcome: APPROVED
+      comment: REPLACE_ME

@@ -1,0 +1,30 @@
+# ---------------------------------------------------------------------------------------------
+# The question bank manifest.
+#
+# EMPTY ON PURPOSE. This repository ships the authoring pipeline, not the questions: CLAUDE.md
+# forbids inventing question content, and a bank seeded with plausible-looking placeholder
+# questions is worse than an empty one, because nobody can tell which entries were reviewed.
+#
+# The validator runs over this directory on every `./gradlew test`, so it is already guarding
+# the bank before the first question lands. An empty bank is valid; a malformed one is not.
+#
+# To add questions:
+#   1. cp banks/_TEMPLATE.yaml banks/<your-bank-name>.yaml
+#   2. Fill it in. Replace every REPLACE_ME.
+#   3. Add <your-bank-name> to the `banks` list below.
+#   4. Bump bank_version.
+#   5. From backend/: ./gradlew test
+#
+# Full rules: SCHEMA.md
+# ---------------------------------------------------------------------------------------------
+
+bank_version: "0.1-empty"
+
+# The vocabulary these questions were written against. Tags are checked against exactly this
+# version, because a tag that resolved last month may name a sub-skill a newer taxonomy renamed.
+taxonomy_version: "2026.1-example"
+
+description: >-
+  No questions yet. The pipeline that validates them is in place.
+
+banks: []
