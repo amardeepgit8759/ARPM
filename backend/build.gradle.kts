@@ -2,6 +2,11 @@ plugins {
     java
     id("org.springframework.boot") version "3.5.16"
     id("io.spring.dependency-management") version "1.1.7"
+
+    // OWASP dependency-check. Replaces nothing in the existing stack: no other tool here knows
+    // about published CVEs, and a transitive dependency with a known critical vulnerability is
+    // invisible to compilation, to ArchUnit and to every test we have.
+    id("org.owasp.dependencycheck") version "12.1.0"
 }
 
 group = "com.placefy"
@@ -71,4 +76,29 @@ val integrationTest = tasks.register<Test>("integrationTest") {
 
 tasks.named("check") {
     dependsOn(integrationTest)
+}
+
+dependencyCheck {
+    // CVSS 7.0 is the floor of "High". Failing below that would make the build red on advisories
+    // nobody intends to act on this week, and a gate people routinely override is not a gate.
+    failBuildOnCVSS = 7.0f
+
+    formats = listOf("HTML", "JSON")
+    outputDirectory = layout.buildDirectory.dir("reports/dependency-check").get().asFile.path
+
+    // The NVD refuses to serve its feed at any useful rate without a key, so a run without one
+    // either takes hours or silently analyses an empty database and reports no vulnerabilities.
+    // The second failure mode is the dangerous one, which is why CI checks for the key first.
+    nvd {
+        apiKey = System.getenv("NVD_API_KEY")
+    }
+
+    // Test-only dependencies do not ship. Scanning them turns real findings into noise.
+    scanConfigurations = listOf("runtimeClasspath")
+
+    analyzers {
+        assemblyEnabled = false
+        nodeAudit { enabled = false }
+        nodeEnabled = false
+    }
 }

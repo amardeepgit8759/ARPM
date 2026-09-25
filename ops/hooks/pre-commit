@@ -1,0 +1,59 @@
+#!/bin/sh
+# Placefy pre-commit hook: refuse to commit secrets.
+#
+# Install with:   git config core.hooksPath ops/hooks
+#
+# Uses gitleaks when it is installed, because it is far better at this than anything worth
+# hand-rolling. Without it, falls back to a narrow check for the specific things this repository
+# can leak. The fallback is a backstop, not a substitute — CI runs the full scan regardless, so a
+# machine without gitleaks cannot quietly push a secret past the gate.
+
+set -e
+
+if command -v gitleaks >/dev/null 2>&1; then
+    exec gitleaks protect --staged --redact --config .gitleaks.toml
+fi
+
+echo "pre-commit: gitleaks not found, running the fallback check."
+echo "            install gitleaks for full coverage: https://github.com/gitleaks/gitleaks"
+
+staged=$(git diff --cached --name-only --diff-filter=ACM)
+[ -z "$staged" ] && exit 0
+
+status=0
+
+for file in $staged; do
+    case "$file" in
+        ops/.env.example|.gitleaks.toml|backend/src/test/resources/application.yml) continue ;;
+    esac
+    [ -f "$file" ] || continue
+
+    # An .env file should never be staged at all.
+    case "$file" in
+        *.env|*.env.local|ops/.env)
+            echo "BLOCKED: $file is an environment file and must not be committed."
+            status=1
+            continue
+            ;;
+    esac
+
+    if git show ":$file" | grep -qiE 'PLACEFY_JWT_SECRET[[:space:]]*[:=][[:space:]]*["'"'"']?[A-Za-z0-9+/=_-]{32,}'; then
+        echo "BLOCKED: $file assigns a real-looking PLACEFY_JWT_SECRET."
+        status=1
+    fi
+    if git show ":$file" | grep -qE 'BEGIN [A-Z ]*PRIVATE KEY'; then
+        echo "BLOCKED: $file contains a private key."
+        status=1
+    fi
+    if git show ":$file" | grep -qE '\bAKIA[0-9A-Z]{16}\b'; then
+        echo "BLOCKED: $file contains an AWS access key id."
+        status=1
+    fi
+done
+
+if [ "$status" -ne 0 ]; then
+    echo ""
+    echo "Commit refused. Remove the secret, rotate it, and commit again."
+fi
+
+exit $status

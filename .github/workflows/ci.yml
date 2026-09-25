@@ -117,3 +117,66 @@ jobs:
       - name: Tear down
         if: always()
         run: docker compose -f ops/docker-compose.yml down -v
+
+  security:
+    name: Security
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # gitleaks needs history to scan what was pushed, not just the tip. A secret committed
+          # three commits ago and force-pushed past a shallow clone is still a leaked secret.
+          fetch-depth: 0
+
+      - name: Secret scan
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_CONFIG: .gitleaks.toml
+
+  dependency-check:
+    name: OWASP dependency check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+
+      # Without a key the NVD either throttles the run to hours or, worse, analyses an empty
+      # database and reports no vulnerabilities at all. Failing here is deliberate: a scan that
+      # silently finds nothing is more dangerous than no scan, because it looks like a pass.
+      - name: Require an NVD API key
+        env:
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+        run: |
+          if [ -z "$NVD_API_KEY" ]; then
+            echo "::error::NVD_API_KEY is not set. Request a free key at"
+            echo "::error::https://nvd.nist.gov/developers/request-an-api-key and add it as a"
+            echo "::error::repository secret. Without it this scan cannot be trusted."
+            exit 1
+          fi
+
+      - name: Cache the vulnerability database
+        uses: actions/cache@v4
+        with:
+          path: ~/.gradle/dependency-check-data
+          key: dependency-check-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: dependency-check-${{ runner.os }}-
+
+      - name: Scan runtime dependencies
+        working-directory: backend
+        env:
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+        run: ./gradlew dependencyCheckAnalyze --no-daemon
+
+      - name: Publish the report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-check-report
+          path: backend/build/reports/dependency-check/

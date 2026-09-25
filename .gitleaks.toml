@@ -1,0 +1,35 @@
+# Secret scanning rules for Placefy.
+#
+# Extends gitleaks' built-in rule set rather than replacing it, then adds the two leaks this
+# repository is actually shaped to produce.
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "placefy-jwt-secret"
+description = "A real value assigned to PLACEFY_JWT_SECRET"
+# The token signing key. Committing it is equivalent to publishing every session.
+regex = '''(?i)PLACEFY_JWT_SECRET\s*[:=]\s*["']?[A-Za-z0-9+/=_\-]{32,}["']?'''
+tags = ["secret", "placefy"]
+
+[[rules]]
+id = "placefy-db-password"
+description = "A database password assigned outside compose defaults"
+regex = '''(?i)(PLACEFY_DB_PASSWORD|POSTGRES_PASSWORD)\s*[:=]\s*["']?(?!placefy["'\s]|\$\{)[^\s"']{8,}'''
+tags = ["secret", "placefy"]
+
+[allowlist]
+description = "Committed placeholders and fixtures that only look like secrets"
+paths = [
+  # The documented placeholder, which the application rejects at startup.
+  '''ops/\.env\.example''',
+  # A fixture that signs tokens for the lifetime of a test JVM and nothing else.
+  '''backend/src/test/resources/application\.yml''',
+  # Rules describing secrets are not secrets.
+  '''\.gitleaks\.toml''',
+]
+regexes = [
+  '''replace-me-with-at-least-32-bytes-of-real-entropy''',
+  '''placefy-test-signing-secret''',
+]
