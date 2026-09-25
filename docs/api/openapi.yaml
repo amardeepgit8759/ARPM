@@ -1,13 +1,17 @@
 openapi: 3.1.0
 
 info:
-  title: Placefy API
-  version: 0.1.0
+  title: APRM API
+  version: 0.2.0
   description: |
-    Placement-readiness platform API.
+    APRM (Automated Placement Readiness Mentor) API.
 
-    Phase 0 covers authentication only. Every endpoint added later must appear here in the
-    same commit that adds it, and must be covered by a contract test.
+    Covers authentication, the caller's own account, and the first administrator endpoint.
+    Every endpoint added later must appear here in the same commit that adds it, and must be
+    covered by a contract test.
+
+    Error `type` URNs keep the `urn:placefy:problem:` prefix. They are stable identifiers
+    clients branch on, so the product rename does not change them.
 
     Two conventions hold across the whole API:
 
@@ -23,6 +27,7 @@ servers:
 tags:
   - name: Authentication
   - name: Current user
+  - name: Administration
 
 paths:
   /api/v1/auth/register:
@@ -44,11 +49,12 @@ paths:
             Set-Cookie:
               description: |
                 The refresh token, as `placefy_refresh`. Always `HttpOnly`, `SameSite=Strict`
-                and scoped to `Path=/api/v1/auth/refresh`. `Secure` is set everywhere except
-                the local development profile, where the origin is plain-HTTP localhost.
+                and scoped to `Path=/api/v1/auth`, where refresh and logout read it. `Secure` is
+                set everywhere except the local development profile, where the origin is
+                plain-HTTP localhost.
               schema:
                 type: string
-              example: placefy_refresh=<opaque>; Path=/api/v1/auth/refresh; Max-Age=2592000; HttpOnly; Secure; SameSite=Strict
+              example: placefy_refresh=<opaque>; Path=/api/v1/auth; Max-Age=2592000; HttpOnly; Secure; SameSite=Strict
           content:
             application/json:
               schema:
@@ -154,7 +160,33 @@ paths:
                 detail: Refresh token is missing, expired or already used.
                 instance: /api/v1/auth/refresh
 
-  /api/v1/me:
+  /api/v1/auth/logout:
+    post:
+      tags: [Authentication]
+      summary: End the session the refresh cookie belongs to
+      operationId: logout
+      security: []
+      description: |
+        Revokes every token in the presented cookie's rotation chain and expires the cookie.
+        Other sessions of the same user, on another device, are unaffected; changing the
+        password is how a user ends all of them.
+
+        Needs no access token, so a user whose access token has expired can still sign out.
+        Always answers 204: a missing, unknown or already-revoked cookie is a silent no-op,
+        because a sign-out response should not reveal which tokens the server recognises.
+
+        Access tokens are stateless and remain valid until they expire (at most 15 minutes);
+        the client discards its copy.
+      responses:
+        '204':
+          description: Signed out.
+          headers:
+            Set-Cookie:
+              description: The refresh cookie with `Max-Age=0`.
+              schema:
+                type: string
+
+  /api/v1/students/me:
     get:
       tags: [Current user]
       summary: Read the authenticated user's profile
@@ -162,6 +194,7 @@ paths:
       description: |
         Resolves the user from the access token's subject. There is deliberately no endpoint
         that accepts a user identifier, so one cannot be substituted for another user's.
+        Served to administrators too: "students" names the product's subject, not a role gate.
       responses:
         '200':
           description: The authenticated user.
@@ -171,6 +204,183 @@ paths:
                 $ref: '#/components/schemas/User'
         '401':
           $ref: '#/components/responses/Unauthenticated'
+
+    put:
+      tags: [Current user]
+      summary: Update the authenticated user's profile
+      operationId: updateMyProfile
+      description: |
+        Replaces the editable fields, which today is the display name alone. Email is not
+        editable: it is the login identifier, and changing it needs a verification step the
+        product does not have. Unknown fields in the body, `email` included, are ignored.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProfileRequest'
+      responses:
+        '200':
+          description: The updated profile.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+
+    delete:
+      tags: [Current user]
+      summary: Delete the authenticated user's account
+      operationId: deleteMyAccount
+      description: |
+        Erases the account and everything belonging to it. Irreversible, with no grace period
+        and no soft-delete flag: a user who asks to be deleted and is instead marked
+        `deleted = true` has not been deleted.
+
+        **The current password is required in the body**, on top of a valid access token. A
+        token can be stolen; re-entering a password is the one check a hijacked session cannot
+        pass, and this is the only irreversible operation in the product.
+
+        A body on DELETE is legal and the server reads it, but some proxies drop request bodies
+        on DELETE. If that bites in a deployment, the fix is a POST alias — not dropping the
+        password check.
+
+        The response also expires the refresh cookie, since it now points at nothing.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [password]
+              properties:
+                password:
+                  type: string
+                  description: |
+                    The caller's current password. Not length-checked: this verifies an existing
+                    credential, and applying today's minimum would lock out anyone whose password
+                    predates it.
+      responses:
+        '204':
+          description: The account and all its sessions are gone.
+          headers:
+            Set-Cookie:
+              description: The refresh cookie with `Max-Age=0`.
+              schema:
+                type: string
+        '401':
+          description: |
+            No valid access token, or the password did not match. The two are deliberately
+            indistinguishable in the response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
+  /api/v1/students/me/password:
+    post:
+      tags: [Current user]
+      summary: Change the authenticated user's password
+      operationId: changeMyPassword
+      description: |
+        Requires the current password, re-entered, on top of the access token: a stolen token
+        alone must not be able to lock the owner out.
+
+        On success **every** existing session of this user is revoked, on every device,
+        including the one making the call. The response opens a fresh session for the caller
+        (body and cookie), so the device that changed the password stays signed in and every
+        other device has to log in again with the new password.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangePasswordRequest'
+      responses:
+        '200':
+          description: Password changed. A new session replaces all previous ones.
+          headers:
+            Set-Cookie:
+              description: A new refresh token, with the same attributes as on register.
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionResponse'
+        '400':
+          description: The new password does not meet the policy. `field` is `password`.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '401':
+          description: |
+            No valid access token (`unauthenticated`), or the current password did not match
+            (`invalid-credentials`). Nothing is changed and no session is revoked.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
+  /api/v1/students/me/export:
+    get:
+      tags: [Current user]
+      summary: Download everything APRM holds about the authenticated user
+      operationId: exportMyData
+      description: |
+        Returns the caller's data as a JSON attachment.
+
+        The export is assembled field by field rather than serialised from whatever objects are
+        in scope. An export is the one place where "include everything" and "include no secrets"
+        pull in opposite directions, and a reflective dump resolves that the wrong way by
+        default — a new column would silently join the export without anyone deciding it should.
+
+        Session entries carry metadata only. Token hashes are absent: they are credentials, not
+        personal data, and a file someone might email to themselves is the last place for them.
+      responses:
+        '200':
+          description: The caller's data.
+          headers:
+            Content-Disposition:
+              description: '`attachment; filename="aprm-export.json"`'
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserDataExport'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+
+  /api/v1/admin/overview:
+    get:
+      tags: [Administration]
+      summary: Aggregate figures for the admin dashboard
+      operationId: getAdminOverview
+      description: |
+        Administrators only. Returns counts, never identities: an administrator sees totals
+        across students and no individual student's data (ADR-007).
+
+        The role is checked twice, once from the token's claim by the security filter and
+        again from the stored account by the use case, so an administrator demoted in the
+        database loses access on their next request, not when their token expires.
+
+        ADMIN is granted only by a database statement; no endpoint can grant it.
+      responses:
+        '200':
+          description: The overview.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminOverview'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
 
 components:
   securitySchemes:
@@ -208,7 +418,20 @@ components:
             title: Unauthenticated
             status: 401
             detail: A valid access token is required for this resource.
-            instance: /api/v1/me
+            instance: /api/v1/students/me
+
+    Forbidden:
+      description: Authenticated, but not an administrator.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+          example:
+            type: urn:placefy:problem:forbidden
+            title: Forbidden
+            status: 403
+            detail: This resource is available to administrators only.
+            instance: /api/v1/admin/overview
 
   schemas:
     RegisterRequest:
@@ -246,6 +469,40 @@ components:
           type: string
           description: Not length-checked here, so a password set under an older policy still works.
 
+    UpdateProfileRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 120
+          description: Trimmed, with internal whitespace collapsed.
+          example: Ada King
+
+    ChangePasswordRequest:
+      type: object
+      required: [currentPassword, newPassword]
+      properties:
+        currentPassword:
+          type: string
+          description: Not length-checked, so a password set under an older policy can still be replaced.
+        newPassword:
+          type: string
+          minLength: 12
+          description: Must meet today's policy, at least 12 characters and at most 72 UTF-8 bytes.
+
+    AdminOverview:
+      type: object
+      required: [studentCount]
+      properties:
+        studentCount:
+          type: integer
+          format: int64
+          minimum: 0
+          description: Accounts with the STUDENT role. Administrators are not counted.
+          example: 42
+
     SessionResponse:
       type: object
       required: [accessToken, accessTokenExpiresAt, user]
@@ -278,7 +535,7 @@ components:
           example: ada@example.com
         role:
           type: string
-          enum: [STUDENT]
+          enum: [STUDENT, ADMIN]
         createdAt:
           type: string
           format: date-time
@@ -288,6 +545,39 @@ components:
         email: ada@example.com
         role: STUDENT
         createdAt: '2026-01-15T10:00:00Z'
+
+    UserDataExport:
+      type: object
+      required: [exportedAt, formatVersion, user, sessions]
+      properties:
+        exportedAt:
+          type: string
+          format: date-time
+        formatVersion:
+          type: string
+          description: Bumped whenever a field is added or removed, so a consumer knows what it reads.
+          example: '1'
+        user:
+          type: object
+          required: [id, name, email, role, createdAt, updatedAt]
+          properties:
+            id: { type: string, format: uuid }
+            name: { type: string }
+            email: { type: string }
+            role: { type: string, enum: [STUDENT, ADMIN] }
+            createdAt: { type: string, format: date-time }
+            updatedAt: { type: string, format: date-time }
+        sessions:
+          type: array
+          description: Metadata only. No token hashes, by design.
+          items:
+            type: object
+            required: [issuedAt, expiresAt, revoked]
+            properties:
+              issuedAt: { type: string, format: date-time }
+              expiresAt: { type: string, format: date-time }
+              revokedAt: { type: string, format: date-time, nullable: true }
+              revoked: { type: boolean }
 
     Problem:
       type: object
@@ -305,6 +595,7 @@ components:
             - urn:placefy:problem:invalid-credentials
             - urn:placefy:problem:invalid-refresh-token
             - urn:placefy:problem:unauthenticated
+            - urn:placefy:problem:forbidden
         title:
           type: string
         status:

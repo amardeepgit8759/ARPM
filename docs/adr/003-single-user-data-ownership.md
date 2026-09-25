@@ -38,7 +38,7 @@ organization is provisioned, and no invite token is required.
 - That scoping lives in the use-case layer, not in a controller and not in a repository.
 - Every slice carries an explicit test proving that user A cannot read user B's data.
 - No endpoint accepts a user identifier from a path, query or body as the subject of a read.
-  `GET /api/v1/me` resolves the user from the token and there is deliberately no
+  `GET /api/v1/students/me` (formerly `/api/v1/me`) resolves the user from the token and there is deliberately no
   `GET /api/v1/users/{id}`, so there is no identifier to substitute.
 
 ## Consequences

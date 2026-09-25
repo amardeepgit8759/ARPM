@@ -1,6 +1,10 @@
-# Placefy — working rules
+# APRM — working rules
 
-Placement-readiness platform. A pre-final-year engineering student sets a target company and
+APRM (Automated Placement Readiness Mentor) is a placement-readiness platform. The codebase
+predates the name and still calls itself Placefy internally (`com.placefy`, `PLACEFY_*`
+variables, `urn:placefy:problem:*` error types); those stay. User-facing text says APRM.
+
+ A pre-final-year engineering student sets a target company and
 role, gets assessed, and receives a deterministic readiness score per sub-skill, a ranked list
 of gaps against that company's hiring bar, and a dated preparation plan that recalculates after
 every assessment.
@@ -20,10 +24,14 @@ randomness, and no clock reads inside the logic: time and identifiers arrive thr
 `TimeProvider` and `IdGenerator` ports. Same input, same output, forever.
 
 The Narrative Layer phrases results that are already computed. It cannot produce a number,
-change a gap, reorder a ranking, or influence any input to a computation. This is enforced by
-**validating its output in code**, never by instructing the model in a prompt.
+change a gap, reorder a ranking, or influence any input to a computation. In this version it is
+a **rule-based explanation engine**: predefined templates filled from a persisted decision
+trace, with the output still checked in code by the narrative validator.
 
-**If a change would let a generated model influence a number, the change is wrong.** See
+**The current version uses no AI, ML or LLM anywhere.** Not in scoring, and not in
+explanations, recommendations, prioritisation or roadmaps. No model client, no ML library, and
+no "future AI" stub. AI/ML is a documented future enhancement only. See
+`docs/adr/006-no-ai-or-ml-in-the-current-version.md` and
 `docs/adr/002-decision-narrative-separation.md`.
 
 ---
@@ -45,17 +53,21 @@ change a gap, reorder a ranking, or influence any input to a computation. This i
    organization. Isolation is per user: every query for user-owned data is scoped by the subject
    of the verified JWT, scoping lives in the use-case layer, and every slice carries an explicit
    test that user A cannot read user B's data. See `docs/adr/003-single-user-data-ownership.md`.
-7. Scores are computed on write and persisted as immutable runs with `engine_version`,
+7. **Roles are STUDENT and ADMIN.** ADMIN is granted only by a database statement, never by an
+   endpoint, flag or config property. Admin use cases re-check the role from storage, and admin
+   endpoints return aggregates only: no admin endpoint exposes an individual student's data. See
+   `docs/adr/007-student-and-admin-roles.md`.
+8. Scores are computed on write and persisted as immutable runs with `engine_version`,
    `config_version`, `taxonomy_version` and `inputs_hash`. Read endpoints are projections.
    **Nothing recomputes a score on read.**
-8. Thresholds, weights, band boundaries, pacing rules and taxonomy live in the database as
+9. Thresholds, weights, band boundaries, pacing rules and taxonomy live in the database as
    versioned configuration. No magic numbers in Java.
-9. Every external system sits behind a port. The product must pass its full test suite with
+10. Every external system sits behind a port. The product must pass its full test suite with
    every external provider returning empty.
 
-`backend/src/test/java/com/placefy/architecture/ArchitectureRulesTest.java` enforces 1, 2, 4, 5
-and the no-clock/no-randomness rule. When a model client is added, add it to that test's
-prohibited list **in the same commit**.
+`backend/src/test/java/com/placefy/architecture/ArchitectureRulesTest.java` enforces 1, 2, 4, 5,
+the no-clock/no-randomness rule, and the ban on AI/ML libraries. When a new LLM or ML client
+library appears in the ecosystem, add its package to that ban.
 
 ---
 
@@ -120,7 +132,7 @@ arrive with the first chart and the first end-to-end flow.
 - Framework annotations in `domain`
 - A repository called from a controller
 - Business logic inside a React component
-- An LLM call anywhere in the path of computing a score
+- Any AI, ML or LLM call anywhere in the current version
 - A secret committed to the repository
 - A skipped test merged to main
 
@@ -163,6 +175,7 @@ backend/src/main/java/com/placefy/
   infrastructure/config/      hand-wiring and transaction decorators
   infrastructure/content/     YAML content loading, validation and startup seeding
   web/                        controllers, HTTP representations, RFC 7807 advice
+  web/admin/                  administrator endpoints: aggregates only (ADR-007)
 
 backend/src/main/resources/db/migration/   Flyway owns the schema; Hibernate is `validate`
 docs/adr/                                  decisions with consequences

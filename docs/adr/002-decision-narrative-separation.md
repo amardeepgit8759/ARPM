@@ -1,7 +1,12 @@
 # ADR-002: The Decision Layer computes; the Narrative Layer only phrases
 
-- **Status:** Accepted
+- **Status:** Accepted, amended by ADR-006
 - **Date:** 2026-09-15
+
+> **Amended 2026-09-23 (ADR-006).** The current version uses no generative model at all. The
+> Narrative Layer is a rule-based explanation engine that fills templates from a decision trace.
+> Everything below about determinism, output validation and provenance still applies; the parts
+> that describe a model phrasing results describe a future option, not the current design.
 
 ## Context
 

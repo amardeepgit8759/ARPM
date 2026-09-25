@@ -81,3 +81,20 @@ anything.
 Phase 0 because `SameSite=Strict` on a path-scoped cookie already denies the attack, and an
 unnecessary mechanism is one more thing to keep correct. Worth revisiting if a future endpoint
 ever authenticates by cookie.
+
+## Amendment, 2026-09-23: logout, and the cookie path
+
+**The cookie path widened from `/api/v1/auth/refresh` to `/api/v1/auth`.** `POST
+/api/v1/auth/logout` has to read the cookie to revoke its family, and a browser only sends a
+cookie to paths under its `Path`. Register and login now receive the cookie too and ignore it.
+It still never reaches `/api/v1/students/**` or any other resource endpoint.
+
+**Logout revokes the presented token's whole family**, then expires the cookie, and always
+answers 204, even for an unknown or missing cookie. Other families of the same user (other
+devices) survive; a password change is what revokes every family.
+
+**CSRF, revisited as the section above asked.** Logout is the first endpoint besides refresh that
+acts on the cookie. `SameSite=Strict` still stops a cross-site page from sending it, so a forged
+cross-site logout arrives with no cookie and does nothing. Even if it did get through, the worst
+case is signing the user out, which they can undo by logging in. No CSRF token is added.
+
